@@ -76,12 +76,12 @@ export default function PlayerDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* 選手ヘッダー */}
-      <section className="gradient-bg py-12 text-white">
+      <section className="gradient-bg py-8 sm:py-12 text-white">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:gap-12">
             {/* 選手画像 */}
-            <div className="mb-8 lg:mb-0">
-              <div className="relative h-64 w-64 mx-auto lg:mx-0 overflow-hidden rounded-2xl bg-white/20 backdrop-blur-sm">
+            <div className="mb-6 sm:mb-8 lg:mb-0">
+              <div className="relative h-48 w-48 sm:h-64 sm:w-64 mx-auto lg:mx-0 overflow-hidden rounded-2xl bg-white/20 backdrop-blur-sm">
                 {player.imageUrl ? (
                   <img
                     src={player.imageUrl}
@@ -90,7 +90,7 @@ export default function PlayerDetailPage() {
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
-                    <span className="text-8xl">👤</span>
+                    <span className="text-6xl sm:text-8xl">👤</span>
                   </div>
                 )}
               </div>
@@ -98,16 +98,16 @@ export default function PlayerDetailPage() {
 
             {/* 選手情報 */}
             <div className="flex-1 text-center lg:text-left">
-              <div className="mb-6">
-                <h1 className="mb-2 text-4xl font-bold sm:text-5xl">
+              <div className="mb-4 sm:mb-6">
+                <h1 className="mb-2 text-3xl font-bold sm:text-4xl lg:text-5xl">
                   {player.name}
                 </h1>
-                <div className="flex flex-wrap justify-center lg:justify-start gap-3 text-lg">
-                  <span className="rounded-full bg-white/20 px-4 py-2 font-medium backdrop-blur-sm">
+                <div className="flex flex-wrap justify-center lg:justify-start gap-2 sm:gap-3 text-base sm:text-lg">
+                  <span className="rounded-full bg-white/20 px-3 py-1.5 sm:px-4 sm:py-2 font-medium backdrop-blur-sm">
                     {player.team}
                   </span>
                   {player.position && (
-                    <span className="rounded-full bg-white/20 px-4 py-2 font-medium backdrop-blur-sm">
+                    <span className="rounded-full bg-white/20 px-3 py-1.5 sm:px-4 sm:py-2 font-medium backdrop-blur-sm">
                       {player.position}
                     </span>
                   )}
@@ -115,37 +115,32 @@ export default function PlayerDetailPage() {
               </div>
 
               {/* 総合評価 */}
-              <div className="mb-6 flex items-center justify-center gap-8 lg:justify-start">
+              <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 lg:justify-start">
                 <div className="text-center">
-                  <p className="mb-1 text-sm text-white/80">総合評価</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-6xl font-bold">{overallGrade}</span>
-                    <span className="text-2xl text-white/80">
+                  <p className="mb-1 text-xs sm:text-sm text-white/80">総合評価</p>
+                  <div className="flex items-baseline gap-1 sm:gap-2">
+                    <span className="text-4xl sm:text-6xl font-bold">{overallGrade}</span>
+                    <span className="text-lg sm:text-2xl text-white/80">
                       {overallScore.toFixed(1)}
                     </span>
                   </div>
                 </div>
                 
-                <div className="h-16 w-px bg-white/30"></div>
+                <div className="h-px w-16 sm:h-16 sm:w-px bg-white/30"></div>
                 
                 <div className="text-center">
-                  <p className="mb-1 text-sm text-white/80">レビュー数</p>
-                  <div className="text-3xl font-bold">
+                  <p className="mb-1 text-xs sm:text-sm text-white/80">レビュー数</p>
+                  <div className="text-2xl sm:text-3xl font-bold">
                     {player.reviewCount || 0}
                   </div>
-                  <span className="text-sm text-white/80">件</span>
+                  <span className="text-xs sm:text-sm text-white/80">件</span>
                 </div>
               </div>
 
               {/* レビュー投稿ボタン */}
               <div className="flex justify-center lg:justify-start">
                 <button
-                  onClick={() => {
-                    console.log('レビュー投稿ボタンがクリックされました');
-                    console.log('現在のshowReviewForm:', showReviewForm);
-                    setShowReviewForm(true);
-                    console.log('showReviewFormをtrueに設定しました');
-                  }}
+                  onClick={() => setShowReviewForm(true)}
                   className="btn-primary bg-white text-primary hover:bg-gray-100"
                 >
                   レビューを投稿する
@@ -158,47 +153,38 @@ export default function PlayerDetailPage() {
 
       {/* レーダーチャート */}
       {Object.keys(player.summary || {}).length > 0 && (
-        <section className="py-16">
+        <section className="py-8 sm:py-16">
           <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="mb-4 text-3xl font-bold text-gray-900">総合評価チャート</h2>
-              <p className="text-gray-600">
+            <div className="text-center mb-6 sm:mb-12">
+              <h2 className="mb-2 sm:mb-4 text-2xl sm:text-3xl font-bold text-gray-900">総合評価チャート</h2>
+              <p className="text-sm sm:text-base text-gray-600 px-4">
                 ファンの評価を基にした16項目の詳細分析
               </p>
             </div>
             
             <div className="flex justify-center">
-              <div className="w-full max-w-2xl">
-                <RadarChart 
-                  labels={Object.keys(player.summary || {}).map(itemId => {
-                    const item = NBA_EVALUATION_ITEMS.find(item => item.itemId === itemId);
-                    return item ? item.name : itemId;
-                  })}
-                  data={Object.values(player.summary || {})}
-                  title={`${player.name}の総合評価`}
-                />
+              <div className="w-full max-w-sm sm:max-w-md lg:max-w-2xl">
+                <div className="aspect-square w-full">
+                  <RadarChart 
+                    labels={Object.keys(player.summary || {}).map(itemId => {
+                      const item = NBA_EVALUATION_ITEMS.find(item => item.itemId === itemId);
+                      return item ? item.name : itemId;
+                    })}
+                    data={Object.values(player.summary || {})}
+                    title={`${player.name}の総合評価`}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </section>
       )}
 
-      {/* デバッグ情報 */}
-      <div className="bg-yellow-100 p-4 text-center">
-        <p className="text-sm text-gray-800">
-          デバッグ: showReviewForm = {showReviewForm.toString()}
-        </p>
-      </div>
-
       {/* レビューフォーム */}
       {showReviewForm && (
-        <section className="py-16 bg-gray-50">
+        <section className="py-8 sm:py-16 bg-gray-50">
           <div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            <div className="card p-8">
-              <div className="mb-4 text-center">
-                <h3 className="text-xl font-bold text-gray-900">レビュー投稿フォーム</h3>
-                <p className="text-sm text-gray-600">showReviewForm: {showReviewForm.toString()}</p>
-              </div>
+            <div className="card p-4 sm:p-8">
               <ReviewForm
                 playerId={playerId}
                 playerName={player.name}
@@ -214,17 +200,17 @@ export default function PlayerDetailPage() {
       )}
 
       {/* レビュー一覧 */}
-      <section className="py-16">
+      <section className="py-8 sm:py-16">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-gray-900">ファンのレビュー</h2>
-            <p className="text-gray-600">
+          <div className="mb-6 sm:mb-12 text-center">
+            <h2 className="mb-2 sm:mb-4 text-2xl sm:text-3xl font-bold text-gray-900">ファンのレビュー</h2>
+            <p className="text-sm sm:text-base text-gray-600">
               この選手に対するファンの声をお聞きください
             </p>
           </div>
 
           {reviews.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {reviews.map((review) => (
                 <ReviewCard key={review.reviewId} review={review} />
               ))}
@@ -255,10 +241,7 @@ export default function PlayerDetailPage() {
                 最初のレビューを投稿してみませんか？
               </p>
               <button
-                onClick={() => {
-                  console.log('レビュー一覧セクションのボタンがクリックされました');
-                  setShowReviewForm(true);
-                }}
+                onClick={() => setShowReviewForm(true)}
                 className="btn-primary"
               >
                 レビューを投稿する

@@ -11,6 +11,7 @@ import {
   Legend,
   ChartOptions,
 } from 'chart.js';
+import { useState, useEffect } from 'react';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -21,6 +22,19 @@ interface RadarChartProps {
 }
 
 export default function RadarChart({ labels, data, title }: RadarChartProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const chartData = {
     labels,
     datasets: [
@@ -53,7 +67,7 @@ export default function RadarChart({ labels, data, title }: RadarChartProps) {
         },
         pointLabels: {
           font: {
-            size: 12,
+            size: isMobile ? 8 : 12,
             family: "'Yu Gothic', '游ゴシック', YuGothic, sans-serif",
           },
           color: '#374151',
@@ -64,7 +78,7 @@ export default function RadarChart({ labels, data, title }: RadarChartProps) {
           backdropColor: 'transparent',
           color: '#9CA3AF',
           font: {
-            size: 10,
+            size: isMobile ? 8 : 10,
           },
         },
         min: 0,
