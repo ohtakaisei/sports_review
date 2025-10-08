@@ -20,7 +20,20 @@ const SAMPLE_PLAYERS = [
     country: "アメリカ",
     imageUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/2544.png",
     reviewCount: 0,
-    summary: {}
+    summary: {},
+    // 新しいフィールドを追加
+    draftYear: 2003,
+    draftRound: 1,
+    draftPick: 1,
+    stats: {
+      pts: 25.7,
+      ast: 8.3,
+      reb: 7.3,
+      fg: 52.4,
+      season: "2024-25"
+    },
+    contractAmount: 47607350,
+    contractYears: 2
   },
   {
     playerId: "stephen-curry",
@@ -35,7 +48,19 @@ const SAMPLE_PLAYERS = [
     country: "アメリカ",
     imageUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/201939.png",
     reviewCount: 0,
-    summary: {}
+    summary: {},
+    draftYear: 2009,
+    draftRound: 1,
+    draftPick: 7,
+    stats: {
+      pts: 26.4,
+      ast: 5.1,
+      reb: 4.5,
+      fg: 45.0,
+      season: "2024-25"
+    },
+    contractAmount: 55700000,
+    contractYears: 4
   },
   {
     playerId: "kevin-durant",
@@ -50,7 +75,19 @@ const SAMPLE_PLAYERS = [
     country: "アメリカ",
     imageUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/201142.png",
     reviewCount: 0,
-    summary: {}
+    summary: {},
+    draftYear: 2007,
+    draftRound: 1,
+    draftPick: 2,
+    stats: {
+      pts: 27.1,
+      ast: 5.0,
+      reb: 6.7,
+      fg: 52.3,
+      season: "2024-25"
+    },
+    contractAmount: 51200000,
+    contractYears: 4
   },
   {
     playerId: "giannis-antetokounmpo",
@@ -65,7 +102,19 @@ const SAMPLE_PLAYERS = [
     country: "ギリシャ",
     imageUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/203507.png",
     reviewCount: 0,
-    summary: {}
+    summary: {},
+    draftYear: 2013,
+    draftRound: 1,
+    draftPick: 15,
+    stats: {
+      pts: 30.4,
+      ast: 6.5,
+      reb: 11.5,
+      fg: 55.3,
+      season: "2024-25"
+    },
+    contractAmount: 45600000,
+    contractYears: 3
   },
   {
     playerId: "luka-doncic",
@@ -80,7 +129,19 @@ const SAMPLE_PLAYERS = [
     country: "スロベニア",
     imageUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/1629029.png",
     reviewCount: 0,
-    summary: {}
+    summary: {},
+    draftYear: 2018,
+    draftRound: 1,
+    draftPick: 3,
+    stats: {
+      pts: 33.9,
+      ast: 9.8,
+      reb: 9.2,
+      fg: 48.7,
+      season: "2024-25"
+    },
+    contractAmount: 40000000,
+    contractYears: 5
   },
   {
     playerId: "nikola-jokic",
@@ -95,7 +156,19 @@ const SAMPLE_PLAYERS = [
     country: "セルビア",
     imageUrl: "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png",
     reviewCount: 0,
-    summary: {}
+    summary: {},
+    draftYear: 2014,
+    draftRound: 2,
+    draftPick: 41,
+    stats: {
+      pts: 26.4,
+      ast: 9.0,
+      reb: 12.4,
+      fg: 58.3,
+      season: "2024-25"
+    },
+    contractAmount: 51400000,
+    contractYears: 5
   }
 ];
 
@@ -290,6 +363,13 @@ export default function SetupPage() {
         birthDate: updatedPlayer.birthDate || '',
         country: updatedPlayer.country || '',
         imageUrl: updatedPlayer.imageUrl || '',
+        // 新しいフィールドを追加
+        draftYear: updatedPlayer.draftYear || null,
+        draftRound: updatedPlayer.draftRound || null,
+        draftPick: updatedPlayer.draftPick || null,
+        stats: updatedPlayer.stats || null,
+        contractAmount: updatedPlayer.contractAmount || null,
+        contractYears: updatedPlayer.contractYears || null,
       });
       
       // ローカルの状態を更新
@@ -1049,16 +1129,182 @@ function EditPlayerModal({
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">画像URL</label>
-            <input
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              placeholder="https://example.com/image.png"
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">画像URL</label>
+              <input
+                type="url"
+                value={formData.imageUrl}
+                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                placeholder="https://example.com/image.png"
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* ドラフト情報 */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ドラフト年</label>
+                <input
+                  type="number"
+                  value={formData.draftYear || ''}
+                  onChange={(e) => setFormData({ ...formData, draftYear: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="例: 2019"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ドラフトラウンド</label>
+                <input
+                  type="number"
+                  value={formData.draftRound || ''}
+                  onChange={(e) => setFormData({ ...formData, draftRound: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="例: 1"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ドラフト順位</label>
+                <input
+                  type="number"
+                  value={formData.draftPick || ''}
+                  onChange={(e) => setFormData({ ...formData, draftPick: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="例: 9"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* スタッツ情報 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">スタッツ情報</label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600">得点 (PTS)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.stats?.pts || ''}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      stats: { 
+                        pts: e.target.value ? Number(e.target.value) : 0,
+                        ast: formData.stats?.ast || 0,
+                        reb: formData.stats?.reb || 0,
+                        fg: formData.stats?.fg || 0,
+                        season: formData.stats?.season || '2024-25'
+                      } 
+                    })}
+                    placeholder="例: 23.3"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600">リバウンド (REB)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.stats?.reb || ''}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      stats: { 
+                        pts: formData.stats?.pts || 0,
+                        ast: formData.stats?.ast || 0,
+                        reb: e.target.value ? Number(e.target.value) : 0,
+                        fg: formData.stats?.fg || 0,
+                        season: formData.stats?.season || '2024-25'
+                      } 
+                    })}
+                    placeholder="例: 4.3"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600">アシスト (AST)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.stats?.ast || ''}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      stats: { 
+                        pts: formData.stats?.pts || 0,
+                        ast: e.target.value ? Number(e.target.value) : 0,
+                        reb: formData.stats?.reb || 0,
+                        fg: formData.stats?.fg || 0,
+                        season: formData.stats?.season || '2024-25'
+                      } 
+                    })}
+                    placeholder="例: 4.2"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600">FG%</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.stats?.fg || ''}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      stats: { 
+                        pts: formData.stats?.pts || 0,
+                        ast: formData.stats?.ast || 0,
+                        reb: formData.stats?.reb || 0,
+                        fg: e.target.value ? Number(e.target.value) : 0,
+                        season: formData.stats?.season || '2024-25'
+                      } 
+                    })}
+                    placeholder="例: 51.1"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-600">シーズン</label>
+                  <input
+                    type="text"
+                    value={formData.stats?.season || ''}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      stats: { 
+                        pts: formData.stats?.pts || 0,
+                        ast: formData.stats?.ast || 0,
+                        reb: formData.stats?.reb || 0,
+                        fg: formData.stats?.fg || 0,
+                        season: e.target.value
+                      } 
+                    })}
+                    placeholder="例: 2024-25"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 契約情報 */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">契約金額（年俸・ドル）</label>
+                <input
+                  type="number"
+                  value={formData.contractAmount || ''}
+                  onChange={(e) => setFormData({ ...formData, contractAmount: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="例: 17000000"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">例: 17,000,000（1700万ドル）</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">契約年数</label>
+                <input
+                  type="number"
+                  value={formData.contractYears || ''}
+                  onChange={(e) => setFormData({ ...formData, contractYears: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="例: 4"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">例: 4年契約</p>
+              </div>
+            </div>
 
           <div className="flex gap-3 pt-4">
             <button

@@ -221,6 +221,31 @@ export default function PlayerDetailPage() {
                 </div>
               </div>
 
+              {/* ドラフト情報と契約情報 */}
+              <div className="mb-4 sm:mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm sm:text-base">
+                {player.draftYear && player.draftPick && (
+                  <div className="flex items-center justify-center lg:justify-start gap-2">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-white/90">
+                      {player.draftYear}年 {player.draftPick}位
+                    </span>
+                  </div>
+                )}
+                {player.contractAmount && (
+                  <div className="flex items-center justify-center lg:justify-start gap-2">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                    <span className="text-white/90">
+                      ${(player.contractAmount / 1000000).toFixed(1)}M
+                      {player.contractYears && ` (${player.contractYears}年)`}
+                    </span>
+                  </div>
+                )}
+              </div>
+
               {/* レビュー投稿ボタン */}
               <div className="flex justify-center lg:justify-start">
                 <button
@@ -234,6 +259,60 @@ export default function PlayerDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* スタッツ表示 */}
+      {player.stats && (
+        <section className="py-8 sm:py-16 bg-gray-50">
+          <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-6 sm:mb-12">
+              <h2 className="mb-2 sm:mb-4 text-2xl sm:text-3xl font-bold text-gray-900">
+                {player.stats.season} REGULAR SEASON STATS
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600 px-4">
+                最新シーズンの統計データ
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {/* PTS */}
+              <div className="card p-4 sm:p-6 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                  {player.stats.pts}
+                </div>
+                <div className="text-sm text-gray-600 mb-2">PTS</div>
+                <div className="text-xs text-gray-500">Points</div>
+              </div>
+              
+              {/* REB */}
+              <div className="card p-4 sm:p-6 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                  {player.stats.reb}
+                </div>
+                <div className="text-sm text-gray-600 mb-2">REB</div>
+                <div className="text-xs text-gray-500">Rebounds</div>
+              </div>
+              
+              {/* AST */}
+              <div className="card p-4 sm:p-6 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                  {player.stats.ast}
+                </div>
+                <div className="text-sm text-gray-600 mb-2">AST</div>
+                <div className="text-xs text-gray-500">Assists</div>
+              </div>
+              
+              {/* FG% */}
+              <div className="card p-4 sm:p-6 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                  {player.stats.fg}%
+                </div>
+                <div className="text-sm text-gray-600 mb-2">FG%</div>
+                <div className="text-xs text-gray-500">Field Goal %</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* レーダーチャート */}
       {Object.keys(player.summary || {}).length > 0 && (

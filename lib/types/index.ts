@@ -22,6 +22,15 @@ export interface EvaluationItem {
   displayOrder: number;
 }
 
+// 選手のスタッツ情報
+export interface PlayerStats {
+  pts: number; // 得点
+  ast: number; // アシスト
+  reb: number; // リバウンド
+  fg: number; // フィールドゴール成功率
+  season: string; // シーズン（例: "2024-25"）
+}
+
 // 選手情報
 export interface Player {
   playerId: string;
@@ -37,6 +46,13 @@ export interface Player {
   weight?: string;
   birthDate?: string;
   country?: string;
+  // 新しく追加するフィールド
+  draftYear?: number; // ドラフト年
+  draftRound?: number; // ドラフトラウンド
+  draftPick?: number; // ドラフト順位
+  stats?: PlayerStats; // スタッツ情報
+  contractAmount?: number; // 契約金額（年俸、ドル）
+  contractYears?: number; // 契約年数
 }
 
 // レビュー
