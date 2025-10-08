@@ -228,3 +228,4 @@ Route (app)                         Size  First Load JS  Revalidate
 
 このサイトを通じて、NBA選手への熱い想いを共有しましょう！
 
+

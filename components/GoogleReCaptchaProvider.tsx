@@ -28,3 +28,4 @@ export default function GoogleReCaptchaProviderWrapper({ children }: GoogleReCap
     </GoogleReCaptchaProvider>
   );
 }
+

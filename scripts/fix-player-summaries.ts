@@ -138,3 +138,4 @@ main()
     console.error('スクリプト実行エラー:', error);
     process.exit(1);
   });
+
