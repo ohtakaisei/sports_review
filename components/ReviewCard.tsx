@@ -31,7 +31,9 @@ export default function ReviewCard({ review }: ReviewCardProps) {
             </svg>
           </div>
           <div>
-            <h4 className="text-sm sm:text-base font-semibold text-gray-900">匿名ユーザー</h4>
+            <h4 className="text-sm sm:text-base font-semibold text-gray-900">
+              {review.userName || '匿名ユーザー'}
+            </h4>
             <p className="text-xs sm:text-sm text-gray-500">{formatRelativeTime(review.createdAt)}</p>
           </div>
         </div>

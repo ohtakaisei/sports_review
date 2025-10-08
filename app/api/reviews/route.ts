@@ -6,7 +6,7 @@ import { checkRateLimit } from '@/lib/utils/rate-limit';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { playerId, comment, scores, recaptchaToken } = body;
+    const { playerId, comment, scores, recaptchaToken, userName } = body;
 
     // reCAPTCHA検証
     if (process.env.RECAPTCHA_SECRET_KEY && recaptchaToken) {
@@ -46,6 +46,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ユーザー名の検証（任意）
+    if (userName && typeof userName === 'string') {
+      if (userName.length > 12) {
+        return NextResponse.json(
+          { message: 'ユーザー名は12文字以内で入力してください' },
+          { status: 400 }
+        );
+      }
+    }
+
     if (!scores || typeof scores !== 'object') {
       return NextResponse.json(
         { message: '評価データが不正です' },
@@ -83,7 +93,7 @@ export async function POST(request: NextRequest) {
     const overallScore = calculateAverageScore(scores);
 
     // レビューを作成（Admin SDK使用）
-    const reviewId = await createReviewAdmin(playerId, comment, scores, overallScore);
+    const reviewId = await createReviewAdmin(playerId, comment, scores, overallScore, userName);
 
     return NextResponse.json(
       {

@@ -14,15 +14,20 @@ import {
 } from '@/lib/types';
 import { getGradeColor, gradeToNumber } from '@/lib/utils';
 
-const GRADES: ScoreGrade[] = ['S', 'A', 'B', 'C', 'D', 'F'];
+const GRADES: ScoreGrade[] = ['S', 'A', 'B', 'C', 'D', 'E', 'F'];
 
 // バリデーションスキーマ
 const reviewSchema = z.object({
+  userName: z
+    .string()
+    .max(12, 'ユーザー名は12文字以内で入力してください')
+    .optional()
+    .or(z.literal('')),
   comment: z
     .string()
     .min(10, 'コメントは10文字以上で入力してください')
     .max(500, 'コメントは500文字以内で入力してください'),
-  scores: z.record(z.string(), z.enum(['S', 'A', 'B', 'C', 'D', 'F'])).refine(
+  scores: z.record(z.string(), z.enum(['S', 'A', 'B', 'C', 'D', 'E', 'F'])).refine(
     (scores) => {
       // すべての項目が評価されているかチェック
       return NBA_EVALUATION_ITEMS.every((item) => scores[item.itemId] !== undefined);
@@ -93,6 +98,7 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
           comment: data.comment,
           scores: numericScores,
           recaptchaToken, // reCAPTCHAトークンを追加
+          userName: data.userName || undefined, // ユーザー名を追加
         }),
       });
 
@@ -221,6 +227,27 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
           {errors.scores.root?.message || 'すべての項目を評価してください'}
         </div>
       )}
+
+      {/* ユーザー名入力 */}
+      <div className="card p-6 space-y-4">
+        <label htmlFor="userName" className="block text-lg font-semibold text-gray-900">
+          ユーザー名 <span className="text-sm font-normal text-gray-500">(任意)</span>
+        </label>
+        <input
+          type="text"
+          id="userName"
+          {...register('userName')}
+          placeholder="あなたの名前を入力してください（12文字以内）"
+          maxLength={12}
+          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+        />
+        {errors.userName && (
+          <p className="text-sm text-red-600">{errors.userName.message}</p>
+        )}
+        <p className="text-xs text-gray-500">
+          空の場合は「匿名ユーザー」として表示されます
+        </p>
+      </div>
 
       {/* コメント入力 */}
       <div className="card p-6 space-y-4">

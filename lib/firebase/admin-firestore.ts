@@ -21,13 +21,15 @@ import { Player } from '@/lib/types';
  * @param comment - レビューコメント
  * @param scores - 各項目のスコア（数値）
  * @param overallScore - 総合評価
+ * @param userName - ユーザー名（任意）
  * @returns 作成されたレビューのID
  */
 export async function createReviewAdmin(
   playerId: string,
   comment: string,
   scores: Record<string, number>,
-  overallScore: number
+  overallScore: number,
+  userName?: string
 ): Promise<string> {
   const db = getAdminFirestore();
   
@@ -39,46 +41,109 @@ export async function createReviewAdmin(
     overallScore,
     status: 'published',
     createdAt: FieldValue.serverTimestamp(),
+    ...(userName && { userName }), // ユーザー名がある場合のみ追加
   };
   
-  // トランザクションで、レビュー作成と選手の集計データ更新を同時に行う
-  const reviewId = await db.runTransaction(async (transaction) => {
+  // レビューを作成（選手データの更新は不要 - リアルタイム集計を使用）
+  const reviewRef = db.collection('reviews').doc();
+  await db.runTransaction(async (transaction) => {
+    // 選手が存在するか確認
     const playerRef = db.collection('players').doc(playerId);
     const playerSnap = await transaction.get(playerRef);
     
-    // 選手が存在するか確認
     if (!playerSnap.exists) {
       throw new Error('選手が見つかりません');
     }
     
-    const playerData = playerSnap.data() as Player;
-    const currentReviewCount = playerData.reviewCount || 0;
-    const currentSummary = playerData.summary || {};
-    
-    // 新しい平均スコアを計算
-    const newSummary: Record<string, number> = {};
-    Object.keys(scores).forEach((itemId) => {
-      const currentAvg = currentSummary[itemId] || 0;
-      // 加重平均を計算：(現在の平均 × 既存のレビュー数 + 新しいスコア) / (既存のレビュー数 + 1)
-      const newAvg = (currentAvg * currentReviewCount + scores[itemId]) / (currentReviewCount + 1);
-      newSummary[itemId] = Math.round(newAvg * 100) / 100; // 小数点2桁まで
-    });
-    
-    // 選手データを更新
-    transaction.update(playerRef, {
-      reviewCount: currentReviewCount + 1,
-      summary: newSummary,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-    
     // レビューを作成
-    const reviewRef = db.collection('reviews').doc();
     transaction.set(reviewRef, reviewData);
-    
-    return reviewRef.id;
   });
   
+  const reviewId = reviewRef.id;
+  
   return reviewId;
+}
+
+/**
+ * レビューを削除（選手データの更新は不要 - リアルタイム集計を使用）
+ */
+export async function deleteReviewAndUpdatePlayer(reviewId: string): Promise<void> {
+  const db = getAdminFirestore();
+  
+  await db.runTransaction(async (transaction) => {
+    const reviewRef = db.collection('reviews').doc(reviewId);
+    const reviewSnap = await transaction.get(reviewRef);
+    
+    if (!reviewSnap.exists) {
+      throw new Error('レビューが見つかりません');
+    }
+    
+    // レビューを削除（選手データの更新は不要）
+    transaction.delete(reviewRef);
+  });
+}
+
+/**
+ * 選手の集計データを全レビューから再計算
+ */
+export async function recalculatePlayerSummary(playerId: string): Promise<void> {
+  const db = getAdminFirestore();
+  
+  await db.runTransaction(async (transaction) => {
+    const playerRef = db.collection('players').doc(playerId);
+    const playerSnap = await transaction.get(playerRef);
+    
+    if (!playerSnap.exists) {
+      throw new Error('選手が見つかりません');
+    }
+    
+    // その選手の全レビューを取得
+    const reviewsQuery = db.collection('reviews')
+      .where('playerId', '==', playerId)
+      .where('status', '==', 'published');
+    
+    const reviewsSnapshot = await reviewsQuery.get();
+    const reviews = reviewsSnapshot.docs.map(doc => doc.data());
+    
+    if (reviews.length === 0) {
+      // レビューがない場合、集計データをクリア
+      transaction.update(playerRef, {
+        reviewCount: 0,
+        summary: {},
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+    
+    // 各項目の平均スコアを計算
+    const summary: Record<string, number> = {};
+    const allItemIds = new Set<string>();
+    
+    // 全レビューの全項目IDを収集
+    reviews.forEach(review => {
+      Object.keys(review.scores || {}).forEach(itemId => {
+        allItemIds.add(itemId);
+      });
+    });
+    
+    // 各項目の平均を計算
+    allItemIds.forEach(itemId => {
+      const scores = reviews
+        .map(review => review.scores?.[itemId])
+        .filter(score => score !== undefined) as number[];
+      
+      if (scores.length > 0) {
+        const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+        summary[itemId] = Math.round(average * 100) / 100; // 小数点2桁まで
+      }
+    });
+    
+    transaction.update(playerRef, {
+      reviewCount: reviews.length,
+      summary: summary,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
 }
 
 /**

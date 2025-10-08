@@ -1,5 +1,5 @@
-// 評価スコア (S=6, A=5, B=4, C=3, D=2, F=1)
-export type ScoreGrade = 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
+// 評価スコア (S=6, A=5, B=4, C=3, D=2, E=1, F=0)
+export type ScoreGrade = 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
 export const SCORE_MAP: Record<ScoreGrade, number> = {
   S: 6,
@@ -7,7 +7,8 @@ export const SCORE_MAP: Record<ScoreGrade, number> = {
   B: 4,
   C: 3,
   D: 2,
-  F: 1,
+  E: 1,
+  F: 0,
 };
 
 // 評価項目のカテゴリー
@@ -47,12 +48,14 @@ export interface Review {
   status: 'published' | 'pending' | 'rejected';
   overallScore: number;
   scores: Record<string, number>; // itemId: スコア
+  userName?: string; // ユーザー名（任意）
 }
 
 // レビュー投稿フォーム用の型
 export interface ReviewFormData {
   comment: string;
   scores: Record<string, ScoreGrade>;
+  userName?: string; // ユーザー名（任意）
 }
 
 // NBA評価項目定義

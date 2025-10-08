@@ -19,6 +19,7 @@ export function numberToGrade(score: number): ScoreGrade {
   if (rounded >= 4) return 'B';
   if (rounded >= 3) return 'C';
   if (rounded >= 2) return 'D';
+  if (rounded >= 1) return 'E';
   return 'F';
 }
 
@@ -61,7 +62,8 @@ export function getGradeColor(grade: ScoreGrade): string {
     B: 'text-green-600 bg-green-50 border-green-300',
     C: 'text-yellow-600 bg-yellow-50 border-yellow-300',
     D: 'text-orange-600 bg-orange-50 border-orange-300',
-    F: 'text-red-600 bg-red-50 border-red-300',
+    E: 'text-red-600 bg-red-50 border-red-300',
+    F: 'text-gray-600 bg-gray-50 border-gray-300',
   };
   return colorMap[grade];
 }

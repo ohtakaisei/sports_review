@@ -9,6 +9,9 @@ import { NBA_EVALUATION_ITEMS } from '@/lib/types';
 import RadarChart from '@/components/RadarChart';
 import ReviewCard from '@/components/ReviewCard';
 import ReviewForm from '@/components/ReviewForm';
+import Pagination from '@/components/Pagination';
+
+const REVIEWS_PER_PAGE = 6; // 1ページあたりのレビュー数
 
 export default function PlayerDetailPage() {
   const params = useParams();
@@ -18,6 +21,7 @@ export default function PlayerDetailPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,6 +44,27 @@ export default function PlayerDetailPage() {
       fetchData();
     }
   }, [playerId]);
+
+  // レビューが更新されたときにページをリセット
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [reviews]);
+
+  // ページネーション用の計算
+  const totalPages = Math.ceil(reviews.length / REVIEWS_PER_PAGE);
+  const startIndex = (currentPage - 1) * REVIEWS_PER_PAGE;
+  const endIndex = startIndex + REVIEWS_PER_PAGE;
+  const currentReviews = reviews.slice(startIndex, endIndex);
+
+  // ページ変更ハンドラー
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // レビューセクションにスクロール
+    const reviewsSection = document.getElementById('reviews-section');
+    if (reviewsSection) {
+      reviewsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   if (loading) {
     return (
@@ -72,6 +97,18 @@ export default function PlayerDetailPage() {
       ? summaryValues.reduce((acc, val) => acc + val, 0) / summaryValues.length
       : 0;
   const overallGrade = numberToGrade(overallScore);
+
+  // 年齢の計算
+  const calculateAge = (birthDate: string): number => {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -110,6 +147,53 @@ export default function PlayerDetailPage() {
                     <span className="rounded-full bg-white/20 px-3 py-1.5 sm:px-4 sm:py-2 font-medium backdrop-blur-sm">
                       {player.position}
                     </span>
+                  )}
+                  {player.number && (
+                    <span className="rounded-full bg-white/20 px-3 py-1.5 sm:px-4 sm:py-2 font-medium backdrop-blur-sm">
+                      #{player.number}
+                    </span>
+                  )}
+                </div>
+                
+                {/* 選手詳細情報 */}
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm sm:text-base">
+                  {player.height && (
+                    <div className="flex items-center justify-center lg:justify-start gap-2">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span className="text-white/90">{player.height}</span>
+                    </div>
+                  )}
+                  {player.weight && (
+                    <div className="flex items-center justify-center lg:justify-start gap-2">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                      <span className="text-white/90">{player.weight}</span>
+                    </div>
+                  )}
+                  {player.country && (
+                    <div className="flex items-center justify-center lg:justify-start gap-2">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-white/90">{player.country}</span>
+                    </div>
+                  )}
+                  {player.birthDate && (
+                    <div className="flex items-center justify-center lg:justify-start gap-2">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-white/90">
+                        {new Date(player.birthDate).toLocaleDateString('ja-JP', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })} ({calculateAge(player.birthDate)}歳)
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -200,21 +284,39 @@ export default function PlayerDetailPage() {
       )}
 
       {/* レビュー一覧 */}
-      <section className="py-8 sm:py-16">
+      <section id="reviews-section" className="py-8 sm:py-16">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-6 sm:mb-12 text-center">
             <h2 className="mb-2 sm:mb-4 text-2xl sm:text-3xl font-bold text-gray-900">ファンのレビュー</h2>
             <p className="text-sm sm:text-base text-gray-600">
               この選手に対するファンの声をお聞きください
+              {totalPages > 1 && (
+                <span className="block mt-2 text-xs text-gray-500">
+                  ページ {currentPage} / {totalPages} ({reviews.length}件中 {startIndex + 1}-{Math.min(endIndex, reviews.length)}件を表示)
+                </span>
+              )}
             </p>
           </div>
 
           {reviews.length > 0 ? (
-            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {reviews.map((review) => (
-                <ReviewCard key={review.reviewId} review={review} />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {currentReviews.map((review) => (
+                  <ReviewCard key={review.reviewId} review={review} />
+                ))}
+              </div>
+              
+              {/* ページネーション */}
+              {totalPages > 1 && (
+                <div className="mt-8">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
+            </>
           ) : (
             <div className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-12 text-center">
               <div className="mb-4 flex justify-center">

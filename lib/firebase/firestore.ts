@@ -13,11 +13,79 @@ import {
 import { db } from './config';
 import { Player, Review } from '@/lib/types';
 
+// レビューからリアルタイムで集計データを計算
+async function calculateRealTimeSummary(playerId: string): Promise<{
+  reviewCount: number;
+  summary: Record<string, number>;
+}> {
+  const reviewsCol = collection(db, 'reviews');
+  const q = query(
+    reviewsCol,
+    where('playerId', '==', playerId),
+    where('status', '==', 'published')
+  );
+  
+  const snapshot = await getDocs(q);
+  const reviews = snapshot.docs.map(doc => doc.data());
+  
+  if (reviews.length === 0) {
+    return {
+      reviewCount: 0,
+      summary: {}
+    };
+  }
+  
+  // 各項目の平均スコアを計算
+  const summary: Record<string, number> = {};
+  const allItemIds = new Set<string>();
+  
+  // 全レビューの全項目IDを収集
+  reviews.forEach(review => {
+    Object.keys(review.scores || {}).forEach(itemId => {
+      allItemIds.add(itemId);
+    });
+  });
+  
+  // 各項目の平均を計算
+  allItemIds.forEach(itemId => {
+    const scores = reviews
+      .map(review => review.scores?.[itemId])
+      .filter(score => score !== undefined) as number[];
+    
+    if (scores.length > 0) {
+      const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+      summary[itemId] = Math.round(average * 100) / 100; // 小数点2桁まで
+    }
+  });
+  
+  return {
+    reviewCount: reviews.length,
+    summary: summary
+  };
+}
+
 // 選手一覧を取得
 export async function getPlayers(): Promise<Player[]> {
   const playersCol = collection(db, 'players');
   const snapshot = await getDocs(playersCol);
-  return snapshot.docs.map((doc) => ({ ...doc.data(), playerId: doc.id } as Player));
+  
+  // 各選手のリアルタイム集計データを計算
+  const playersWithRealTimeData = await Promise.all(
+    snapshot.docs.map(async (doc) => {
+      const playerData = { ...doc.data(), playerId: doc.id } as Player;
+      
+      // リアルタイムでレビューから集計データを計算
+      const realTimeData = await calculateRealTimeSummary(doc.id);
+      
+      return {
+        ...playerData,
+        reviewCount: realTimeData.reviewCount,
+        summary: realTimeData.summary
+      } as Player;
+    })
+  );
+  
+  return playersWithRealTimeData;
 }
 
 // 特定の選手を取得
@@ -29,7 +97,16 @@ export async function getPlayer(playerId: string): Promise<Player | null> {
     return null;
   }
   
-  return { ...snapshot.data(), playerId: snapshot.id } as Player;
+  const playerData = { ...snapshot.data(), playerId: snapshot.id } as Player;
+  
+  // リアルタイムでレビューから集計データを計算
+  const realTimeData = await calculateRealTimeSummary(playerId);
+  
+  return {
+    ...playerData,
+    reviewCount: realTimeData.reviewCount,
+    summary: realTimeData.summary
+  } as Player;
 }
 
 // 選手のレビューを取得

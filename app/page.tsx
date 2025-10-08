@@ -4,12 +4,16 @@ import { useEffect, useState } from 'react';
 import { getPlayers } from '@/lib/firebase/firestore';
 import PlayerCard from '@/components/PlayerCard';
 import PlayerFilter from '@/components/PlayerFilter';
+import Pagination from '@/components/Pagination';
 import { Player } from '@/lib/types';
+
+const PLAYERS_PER_PAGE = 12; // 1ページあたりの選手数
 
 export default function HomePage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -26,6 +30,25 @@ export default function HomePage() {
 
     fetchPlayers();
   }, []);
+
+  // フィルタリングが変更されたときにページをリセット
+  const handleFilterChange = (filtered: Player[]) => {
+    setFilteredPlayers(filtered);
+    setCurrentPage(1); // フィルタリング時にページを1にリセット
+  };
+
+  // ページネーション用の計算
+  const totalPages = Math.ceil(filteredPlayers.length / PLAYERS_PER_PAGE);
+  const startIndex = (currentPage - 1) * PLAYERS_PER_PAGE;
+  const endIndex = startIndex + PLAYERS_PER_PAGE;
+  const currentPlayers = filteredPlayers.slice(startIndex, endIndex);
+
+  // ページ変更ハンドラー
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // ページトップにスクロール
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -95,7 +118,7 @@ export default function HomePage() {
               {/* フィルター */}
               <PlayerFilter
                 players={players}
-                onFilterChange={setFilteredPlayers}
+                onFilterChange={handleFilterChange}
               />
 
               {/* 選手カード */}
@@ -103,12 +126,28 @@ export default function HomePage() {
                 <>
                   <div className="mb-4 text-sm text-gray-600">
                     {filteredPlayers.length}名の選手が見つかりました
+                    {totalPages > 1 && (
+                      <span className="ml-2 text-gray-500">
+                        (ページ {currentPage} / {totalPages})
+                      </span>
+                    )}
                   </div>
                   <div className="grid gap-3 grid-cols-2 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {filteredPlayers.map((player) => (
+                    {currentPlayers.map((player) => (
                       <PlayerCard key={player.playerId} player={player} />
                     ))}
                   </div>
+                  
+                  {/* ページネーション */}
+                  {totalPages > 1 && (
+                    <div className="mt-8">
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                      />
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-12 text-center">

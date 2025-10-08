@@ -18,7 +18,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
 
     return (
       <Link href={`/players/${player.playerId}`}>
-        <div className="card group overflow-hidden transition-all duration-300 hover:scale-[1.02]">
+        <div className="card group overflow-hidden transition-all duration-300 hover:scale-[1.02] h-full flex flex-col">
           <div className="relative h-32 sm:h-48 lg:h-64 w-full overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
           {player.imageUrl ? (
             <Image
@@ -44,23 +44,23 @@ export default function PlayerCard({ player }: PlayerCardProps) {
             </div>
         </div>
 
-          <div className="p-3 sm:p-5">
-            <h3 className="mb-1 sm:mb-2 text-sm sm:text-lg lg:text-xl font-bold text-gray-900 transition-colors group-hover:text-primary line-clamp-2">
+          <div className="p-3 sm:p-5 flex-1 flex flex-col">
+            <h3 className="mb-1 sm:mb-2 text-sm sm:text-base lg:text-lg font-bold text-gray-900 transition-colors group-hover:text-primary line-clamp-2 min-h-[2.5rem] sm:min-h-[3rem]">
               {player.name}
             </h3>
             
-            <div className="mb-2 sm:mb-3 flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600">
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 sm:px-3 sm:py-1 font-medium">
+            <div className="mb-2 sm:mb-3 flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-gray-600">
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-medium">
                 {player.team}
               </span>
               {player.position && (
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 sm:px-3 sm:py-1 font-medium text-blue-700">
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-medium text-blue-700">
                   {player.position}
                 </span>
               )}
             </div>
 
-            <div className="flex items-center justify-between pt-2 sm:pt-3 border-t">
+            <div className="flex items-center justify-between pt-2 sm:pt-3 border-t mt-auto">
               <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500">
                 <svg
                   className="h-3 w-3 sm:h-4 sm:w-4"
