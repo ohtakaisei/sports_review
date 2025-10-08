@@ -301,7 +301,14 @@ export default function SetupPage() {
             country: player.country || '',
             imageUrl: player.imageUrl || '',
             reviewCount: player.reviewCount || 0,
-            summary: player.summary || {}
+            summary: player.summary || {},
+            // 新しいフィールドを追加
+            draftYear: player.draftYear || null,
+            draftRound: player.draftRound || null,
+            draftPick: player.draftPick || null,
+            stats: player.stats || null,
+            contractAmount: player.contractAmount || null,
+            contractYears: player.contractYears || null
           };
 
           const playerRef = doc(db, 'players', player.playerId);
