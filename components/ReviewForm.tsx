@@ -166,46 +166,46 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
       {/* ヘッダー */}
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900">
+        <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
           {playerName}選手のレビューを投稿
         </h3>
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="mt-2 text-xs sm:text-sm text-gray-600">
           各項目をS～Fで評価し、コメントを添えて投稿してください
         </p>
       </div>
 
       {/* 評価項目 */}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {Object.entries(groupedItems).map(([category, items]) => (
-          <div key={category} className="card p-6 space-y-4">
-            <h4 className="text-lg font-semibold text-gray-900">
+          <div key={category} className="card p-4 sm:p-6 space-y-3 sm:space-y-4">
+            <h4 className="text-base sm:text-lg font-semibold text-gray-900">
               {CATEGORY_LABELS[category as EvaluationCategory]}
             </h4>
             
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {items.map((item) => (
                 <div key={item.itemId} className="space-y-2">
-                  <label className="flex items-center justify-between text-sm font-medium text-gray-700">
-                    <span>{item.name}</span>
+                  <label className="flex items-center justify-between text-xs sm:text-sm font-medium text-gray-700">
+                    <span className="truncate pr-2">{item.name}</span>
                     {currentScores[item.itemId] && (
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${getGradeColor(currentScores[item.itemId])}`}
+                        className={`rounded-full px-2 py-1 text-xs font-bold flex-shrink-0 ${getGradeColor(currentScores[item.itemId])}`}
                       >
                         {currentScores[item.itemId]}
                       </span>
                     )}
                   </label>
                   
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 sm:gap-2">
                     {GRADES.map((grade) => (
                       <button
                         key={grade}
                         type="button"
                         onClick={() => setValue(`scores.${item.itemId}`, grade, { shouldValidate: true })}
-                        className={`flex-1 rounded-lg border-2 px-4 py-3 text-sm font-bold transition-all hover:scale-105 ${
+                        className={`flex-1 rounded-lg border-2 px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-bold transition-all hover:scale-105 ${
                           currentScores[item.itemId] === grade
                             ? getGradeColor(grade) + ' border-current shadow-md scale-105'
                             : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
@@ -229,9 +229,9 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
       )}
 
       {/* ユーザー名入力 */}
-      <div className="card p-6 space-y-4">
-        <label htmlFor="userName" className="block text-lg font-semibold text-gray-900">
-          ユーザー名 <span className="text-sm font-normal text-gray-500">(任意)</span>
+      <div className="card p-4 sm:p-6 space-y-3 sm:space-y-4">
+        <label htmlFor="userName" className="block text-base sm:text-lg font-semibold text-gray-900">
+          ユーザー名 <span className="text-xs sm:text-sm font-normal text-gray-500">(任意)</span>
         </label>
         <input
           type="text"
@@ -239,10 +239,10 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
           {...register('userName')}
           placeholder="あなたの名前を入力してください（12文字以内）"
           maxLength={12}
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+          className="w-full rounded-lg border border-gray-300 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
         />
         {errors.userName && (
-          <p className="text-sm text-red-600">{errors.userName.message}</p>
+          <p className="text-xs sm:text-sm text-red-600">{errors.userName.message}</p>
         )}
         <p className="text-xs text-gray-500">
           空の場合は「匿名ユーザー」として表示されます
@@ -250,19 +250,19 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
       </div>
 
       {/* コメント入力 */}
-      <div className="card p-6 space-y-4">
-        <label htmlFor="comment" className="block text-lg font-semibold text-gray-900">
+      <div className="card p-4 sm:p-6 space-y-3 sm:space-y-4">
+        <label htmlFor="comment" className="block text-base sm:text-lg font-semibold text-gray-900">
           コメント
         </label>
         <textarea
           id="comment"
           {...register('comment')}
-          rows={5}
+          rows={4}
           placeholder={`${playerName}選手への応援メッセージや評価の理由を自由に記入してください...`}
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+          className="w-full rounded-lg border border-gray-300 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
         />
         {errors.comment && (
-          <p className="text-sm text-red-600">{errors.comment.message}</p>
+          <p className="text-xs sm:text-sm text-red-600">{errors.comment.message}</p>
         )}
         <p className="text-xs text-gray-500">
           10文字以上500文字以内で入力してください
@@ -280,11 +280,11 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
       <button
         type="submit"
         disabled={isSubmitting}
-        className="btn-primary w-full text-base"
+        className="btn-primary w-full text-sm sm:text-base py-3"
       >
         {isSubmitting ? (
           <span className="flex items-center justify-center gap-2">
-            <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <svg className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle
                 className="opacity-25"
                 cx="12"
@@ -306,7 +306,7 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
         )}
       </button>
 
-      <p className="text-center text-xs text-gray-500">
+      <p className="text-center text-xs text-gray-500 px-2">
         このサイトはreCAPTCHA v3で保護されており、Googleの
         <a href="https://policies.google.com/privacy" className="text-primary hover:underline">
           プライバシーポリシー

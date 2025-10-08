@@ -115,139 +115,117 @@ export default function PlayerDetailPage() {
       {/* 選手ヘッダー */}
       <section className="gradient-bg py-8 sm:py-12 text-white">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:gap-12">
-            {/* 選手画像 */}
-            <div className="mb-6 sm:mb-8 lg:mb-0">
-              <div className="relative h-48 w-48 sm:h-64 sm:w-64 mx-auto lg:mx-0 overflow-hidden rounded-2xl bg-white/20 backdrop-blur-sm">
-                {player.imageUrl ? (
-                  <img
-                    src={player.imageUrl}
-                    alt={player.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <span className="text-6xl sm:text-8xl">👤</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 選手情報 */}
-            <div className="flex-1 text-center lg:text-left">
-              <div className="mb-4 sm:mb-6">
-                <h1 className="mb-2 text-3xl font-bold sm:text-4xl lg:text-5xl">
-                  {player.name}
-                </h1>
-                <div className="flex flex-wrap justify-center lg:justify-start gap-2 sm:gap-3 text-base sm:text-lg">
-                  <span className="rounded-full bg-white/20 px-3 py-1.5 sm:px-4 sm:py-2 font-medium backdrop-blur-sm">
-                    {player.team}
-                  </span>
-                  {player.position && (
-                    <span className="rounded-full bg-white/20 px-3 py-1.5 sm:px-4 sm:py-2 font-medium backdrop-blur-sm">
-                      {player.position}
-                    </span>
-                  )}
-                  {player.number && (
-                    <span className="rounded-full bg-white/20 px-3 py-1.5 sm:px-4 sm:py-2 font-medium backdrop-blur-sm">
-                      #{player.number}
-                    </span>
+          {/* デスクトップ: 横並びレイアウト */}
+          <div className="hidden lg:flex lg:items-center lg:gap-12">
+            {/* 左側: 選手画像と基本情報 */}
+            <div className="flex items-center gap-8">
+              {/* 選手画像 */}
+              <div className="relative">
+                <div className="relative h-64 w-64 overflow-hidden rounded-2xl bg-white/20 backdrop-blur-sm">
+                  {player.imageUrl ? (
+                    <img
+                      src={player.imageUrl}
+                      alt={player.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <span className="text-8xl">👤</span>
+                    </div>
                   )}
                 </div>
-                
-                {/* 選手詳細情報 */}
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm sm:text-base">
-                  {player.height && (
-                    <div className="flex items-center justify-center lg:justify-start gap-2">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      <span className="text-white/90">{player.height}</span>
-                    </div>
-                  )}
-                  {player.weight && (
-                    <div className="flex items-center justify-center lg:justify-start gap-2">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                      <span className="text-white/90">{player.weight}</span>
-                    </div>
-                  )}
-                  {player.country && (
-                    <div className="flex items-center justify-center lg:justify-start gap-2">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-white/90">{player.country}</span>
-                    </div>
-                  )}
-                  {player.birthDate && (
-                    <div className="flex items-center justify-center lg:justify-start gap-2">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-white/90">
-                        {new Date(player.birthDate).toLocaleDateString('ja-JP', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })} ({calculateAge(player.birthDate)}歳)
+              </div>
+
+              {/* 基本情報 */}
+              <div className="flex-1">
+                <div className="mb-6">
+                  <h1 className="mb-3 text-4xl font-bold">
+                    {player.name}
+                  </h1>
+                  <div className="flex items-center gap-4 text-lg mb-4">
+                    <span className="rounded-full bg-white/20 px-4 py-2 font-medium backdrop-blur-sm">
+                      {player.team}
+                    </span>
+                    {player.position && (
+                      <span className="rounded-full bg-white/20 px-4 py-2 font-medium backdrop-blur-sm">
+                        {player.position}
+                      </span>
+                    )}
+                    {player.number && (
+                      <span className="rounded-full bg-white/20 px-4 py-2 font-medium backdrop-blur-sm">
+                        #{player.number}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* 基本情報 */}
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-base">
+                    {player.height && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/80">身長/体重:</span>
+                        <span className="text-white/90">{player.height}, {player.weight}</span>
+                      </div>
+                    )}
+                    {player.birthDate && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/80">生年月日:</span>
+                        <span className="text-white/90">
+                          {new Date(player.birthDate).toLocaleDateString('ja-JP', {
+                            year: 'numeric',
+                            month: 'numeric',
+                            day: 'numeric'
+                          })} ({calculateAge(player.birthDate)}歳)
+                        </span>
+                      </div>
+                    )}
+                    {player.country && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/80">出身国:</span>
+                        <span className="text-white/90">{player.country}</span>
+                      </div>
+                    )}
+                    {player.draftYear && player.draftPick && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/80">ドラフト:</span>
+                        <span className="text-white/90">{player.draftYear}年 {player.draftPick}位</span>
+                      </div>
+                    )}
+                    {player.contractAmount && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/80">契約:</span>
+                        <span className="text-white/90">
+                          ${(player.contractAmount / 1000000).toFixed(1)}M
+                          {player.contractYears && ` (${player.contractYears}年)`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 総合評価とレビュー数 */}
+                <div className="mb-6 flex items-center gap-8">
+                  <div className="text-center">
+                    <p className="mb-1 text-sm text-white/80">総合評価</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-5xl font-bold">{overallGrade}</span>
+                      <span className="text-2xl text-white/80">
+                        {overallScore.toFixed(1)}
                       </span>
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 総合評価 */}
-              <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 lg:justify-start">
-                <div className="text-center">
-                  <p className="mb-1 text-xs sm:text-sm text-white/80">総合評価</p>
-                  <div className="flex items-baseline gap-1 sm:gap-2">
-                    <span className="text-4xl sm:text-6xl font-bold">{overallGrade}</span>
-                    <span className="text-lg sm:text-2xl text-white/80">
-                      {overallScore.toFixed(1)}
-                    </span>
+                  </div>
+                  
+                  <div className="h-16 w-px bg-white/30"></div>
+                  
+                  <div className="text-center">
+                    <p className="mb-1 text-sm text-white/80">レビュー数</p>
+                    <div className="text-3xl font-bold">
+                      {player.reviewCount || 0}
+                    </div>
+                    <span className="text-sm text-white/80">件</span>
                   </div>
                 </div>
-                
-                <div className="h-px w-16 sm:h-16 sm:w-px bg-white/30"></div>
-                
-                <div className="text-center">
-                  <p className="mb-1 text-xs sm:text-sm text-white/80">レビュー数</p>
-                  <div className="text-2xl sm:text-3xl font-bold">
-                    {player.reviewCount || 0}
-                  </div>
-                  <span className="text-xs sm:text-sm text-white/80">件</span>
-                </div>
-              </div>
 
-              {/* ドラフト情報と契約情報 */}
-              <div className="mb-4 sm:mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm sm:text-base">
-                {player.draftYear && player.draftPick && (
-                  <div className="flex items-center justify-center lg:justify-start gap-2">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span className="text-white/90">
-                      {player.draftYear}年 {player.draftPick}位
-                    </span>
-                  </div>
-                )}
-                {player.contractAmount && (
-                  <div className="flex items-center justify-center lg:justify-start gap-2">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                    </svg>
-                    <span className="text-white/90">
-                      ${(player.contractAmount / 1000000).toFixed(1)}M
-                      {player.contractYears && ` (${player.contractYears}年)`}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* レビュー投稿ボタン */}
-              <div className="flex justify-center lg:justify-start">
+                {/* レビュー投稿ボタン */}
                 <button
                   onClick={() => setShowReviewForm(true)}
                   className="btn-primary bg-white text-primary hover:bg-gray-100"
@@ -256,63 +234,224 @@ export default function PlayerDetailPage() {
                 </button>
               </div>
             </div>
+
+            {/* 右側: スタッツ情報 */}
+            {player.stats && (
+              <div className="ml-auto">
+                <div className="rounded-2xl bg-white p-6 min-w-[280px] shadow-lg">
+                  <h3 className="mb-4 text-center text-sm text-gray-600">
+                    {player.stats.season}
+                  </h3>
+                  
+                  <div className="flex justify-between gap-4">
+                    {/* PTS */}
+                    <div className="text-center flex-1">
+                      <div className="text-2xl font-bold text-gray-900 mb-1">
+                        {player.stats.pts}
+                      </div>
+                      <div className="text-xs text-gray-600 mb-1">PTS</div>
+                      <div className="text-xs text-gray-500">得点</div>
+                    </div>
+                    
+                    {/* REB */}
+                    <div className="text-center flex-1">
+                      <div className="text-2xl font-bold text-gray-900 mb-1">
+                        {player.stats.reb}
+                      </div>
+                      <div className="text-xs text-gray-600 mb-1">REB</div>
+                      <div className="text-xs text-gray-500">リバウンド</div>
+                    </div>
+                    
+                    {/* AST */}
+                    <div className="text-center flex-1">
+                      <div className="text-2xl font-bold text-gray-900 mb-1">
+                        {player.stats.ast}
+                      </div>
+                      <div className="text-xs text-gray-600 mb-1">AST</div>
+                      <div className="text-xs text-gray-500">アシスト</div>
+                    </div>
+                    
+                    {/* FG% */}
+                    <div className="text-center flex-1">
+                      <div className="text-2xl font-bold text-gray-900 mb-1">
+                        {player.stats.fg}%
+                      </div>
+                      <div className="text-xs text-gray-600 mb-1">FG%</div>
+                      <div className="text-xs text-gray-500">FG成功率</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* モバイル: 縦並びレイアウト */}
+          <div className="lg:hidden">
+            {/* 選手画像 */}
+            <div className="mb-6 text-center">
+              <div className="relative h-48 w-48 mx-auto overflow-hidden rounded-2xl bg-white/20 backdrop-blur-sm">
+                {player.imageUrl ? (
+                  <img
+                    src={player.imageUrl}
+                    alt={player.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <span className="text-6xl">👤</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 選手情報 */}
+            <div className="text-center mb-6">
+              <h1 className="mb-3 text-3xl font-bold">
+                  {player.name}
+                </h1>
+              <div className="flex flex-wrap justify-center gap-2 text-base mb-4">
+                <span className="rounded-full bg-white/20 px-3 py-1.5 font-medium backdrop-blur-sm">
+                    {player.team}
+                  </span>
+                  {player.position && (
+                  <span className="rounded-full bg-white/20 px-3 py-1.5 font-medium backdrop-blur-sm">
+                      {player.position}
+                    </span>
+                  )}
+                  {player.number && (
+                  <span className="rounded-full bg-white/20 px-3 py-1.5 font-medium backdrop-blur-sm">
+                      #{player.number}
+                    </span>
+                  )}
+                </div>
+                
+              {/* 基本情報 */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                  {player.height && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white/80 whitespace-nowrap">身長/体重:</span>
+                    <span className="text-white/90 text-xs">{player.height}, {player.weight}</span>
+                    </div>
+                  )}
+                {player.birthDate && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white/80 whitespace-nowrap">生年月日:</span>
+                    <span className="text-white/90 text-xs">
+                      {new Date(player.birthDate).toLocaleDateString('ja-JP', {
+                        year: 'numeric',
+                        month: 'numeric',
+                        day: 'numeric'
+                      })}
+                    </span>
+                    </div>
+                  )}
+                  {player.country && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white/80 whitespace-nowrap">出身国:</span>
+                    <span className="text-white/90 text-xs">{player.country}</span>
+                  </div>
+                )}
+                {player.draftYear && player.draftPick && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white/80 whitespace-nowrap">ドラフト:</span>
+                    <span className="text-white/90 text-xs">{player.draftYear}年 {player.draftPick}位</span>
+                    </div>
+                  )}
+                {player.contractAmount && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white/80 whitespace-nowrap">契約:</span>
+                    <span className="text-white/90 text-xs">
+                      ${(player.contractAmount / 1000000).toFixed(1)}M
+                      {player.contractYears && ` (${player.contractYears}年)`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            {/* 総合評価とレビュー数 */}
+            <div className="mb-6 flex items-center justify-center gap-6">
+                <div className="text-center">
+                <p className="mb-1 text-xs text-white/80">総合評価</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold">{overallGrade}</span>
+                  <span className="text-lg text-white/80">
+                      {overallScore.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+                
+              <div className="h-12 w-px bg-white/30"></div>
+                
+                <div className="text-center">
+                <p className="mb-1 text-xs text-white/80">レビュー数</p>
+                <div className="text-2xl font-bold">
+                    {player.reviewCount || 0}
+                  </div>
+                <span className="text-xs text-white/80">件</span>
+                </div>
+              </div>
+
+              {/* レビュー投稿ボタン */}
+            <div className="flex justify-center mb-6">
+                <button
+                  onClick={() => setShowReviewForm(true)}
+                  className="btn-primary bg-white text-primary hover:bg-gray-100"
+                >
+                  レビューを投稿する
+                </button>
+            </div>
+
+            {/* スタッツ情報（モバイル） */}
+            {player.stats && (
+              <div className="rounded-2xl bg-white p-6 shadow-lg">
+                <h3 className="mb-4 text-center text-sm text-gray-600">
+                  {player.stats.season}
+                </h3>
+                
+                <div className="flex justify-between gap-2">
+                  {/* PTS */}
+                  <div className="text-center flex-1">
+                    <div className="text-xl font-bold text-gray-900 mb-1">
+                      {player.stats.pts}
+                    </div>
+                    <div className="text-xs text-gray-600 mb-1">PTS</div>
+                    <div className="text-xs text-gray-500">得点</div>
+                  </div>
+                  
+                  {/* REB */}
+                  <div className="text-center flex-1">
+                    <div className="text-xl font-bold text-gray-900 mb-1">
+                      {player.stats.reb}
+                    </div>
+                    <div className="text-xs text-gray-600 mb-1">REB</div>
+                    <div className="text-xs text-gray-500">リバウンド</div>
+                  </div>
+                  
+                  {/* AST */}
+                  <div className="text-center flex-1">
+                    <div className="text-xl font-bold text-gray-900 mb-1">
+                      {player.stats.ast}
+                    </div>
+                    <div className="text-xs text-gray-600 mb-1">AST</div>
+                    <div className="text-xs text-gray-500">アシスト</div>
+                  </div>
+                  
+                  {/* FG% */}
+                  <div className="text-center flex-1">
+                    <div className="text-xl font-bold text-gray-900 mb-1">
+                      {player.stats.fg}%
+                    </div>
+                    <div className="text-xs text-gray-600 mb-1">FG%</div>
+                    <div className="text-xs text-gray-500">FG成功率</div>
+                  </div>
+              </div>
+            </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* スタッツ表示 */}
-      {player.stats && (
-        <section className="py-8 sm:py-16 bg-gray-50">
-          <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-6 sm:mb-12">
-              <h2 className="mb-2 sm:mb-4 text-2xl sm:text-3xl font-bold text-gray-900">
-                {player.stats.season} REGULAR SEASON STATS
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600 px-4">
-                最新シーズンの統計データ
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {/* PTS */}
-              <div className="card p-4 sm:p-6 text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                  {player.stats.pts}
-                </div>
-                <div className="text-sm text-gray-600 mb-2">PTS</div>
-                <div className="text-xs text-gray-500">Points</div>
-              </div>
-              
-              {/* REB */}
-              <div className="card p-4 sm:p-6 text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                  {player.stats.reb}
-                </div>
-                <div className="text-sm text-gray-600 mb-2">REB</div>
-                <div className="text-xs text-gray-500">Rebounds</div>
-              </div>
-              
-              {/* AST */}
-              <div className="card p-4 sm:p-6 text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                  {player.stats.ast}
-                </div>
-                <div className="text-sm text-gray-600 mb-2">AST</div>
-                <div className="text-xs text-gray-500">Assists</div>
-              </div>
-              
-              {/* FG% */}
-              <div className="card p-4 sm:p-6 text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                  {player.stats.fg}%
-                </div>
-                <div className="text-sm text-gray-600 mb-2">FG%</div>
-                <div className="text-xs text-gray-500">Field Goal %</div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* レーダーチャート */}
       {Object.keys(player.summary || {}).length > 0 && (
@@ -345,9 +484,9 @@ export default function PlayerDetailPage() {
 
       {/* レビューフォーム */}
       {showReviewForm && (
-        <section className="py-8 sm:py-16 bg-gray-50">
-          <div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            <div className="card p-4 sm:p-8">
+        <section className="py-4 sm:py-8 bg-gray-50">
+          <div className="container mx-auto max-w-4xl px-2 sm:px-4 lg:px-8">
+            <div className="card p-3 sm:p-6 lg:p-8">
               <ReviewForm
                 playerId={playerId}
                 playerName={player.name}
