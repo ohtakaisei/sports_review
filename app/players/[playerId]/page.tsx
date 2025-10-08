@@ -238,46 +238,48 @@ export default function PlayerDetailPage() {
             {/* 右側: スタッツ情報 */}
             {player.stats && (
               <div className="ml-auto">
-                <div className="rounded-2xl bg-white p-6 min-w-[280px] shadow-lg">
-                  <h3 className="mb-4 text-center text-sm text-gray-600">
-                    {player.stats.season}
-                  </h3>
+                <div className="min-w-[360px] rounded-2xl shadow-xl overflow-hidden">
+                  {/* ヘッダー部分 */}
+                  <div className="bg-[#CC6666] px-4 py-3">
+                    <h3 className="text-center text-sm font-bold text-white">
+                      {player.stats.season}
+                    </h3>
+                  </div>
                   
-                  <div className="flex justify-between gap-4">
-                    {/* PTS */}
-                    <div className="text-center flex-1">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {player.stats.pts}
+                  {/* メイン部分 */}
+                  <div className="bg-white px-6 py-6">
+                    <div className="flex justify-between gap-6">
+                      {/* PTS */}
+                      <div className="text-center flex-1">
+                        <div className="text-2xl font-bold text-black mb-1">
+                          {player.stats.pts}
+                        </div>
+                        <div className="text-xs text-gray-500">PTS</div>
                       </div>
-                      <div className="text-xs text-gray-600 mb-1">PTS</div>
-                      <div className="text-xs text-gray-500">得点</div>
-                    </div>
-                    
-                    {/* REB */}
-                    <div className="text-center flex-1">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {player.stats.reb}
+                      
+                      {/* REB */}
+                      <div className="text-center flex-1">
+                        <div className="text-2xl font-bold text-black mb-1">
+                          {player.stats.reb}
+                        </div>
+                        <div className="text-xs text-gray-500">REB</div>
                       </div>
-                      <div className="text-xs text-gray-600 mb-1">REB</div>
-                      <div className="text-xs text-gray-500">リバウンド</div>
-                    </div>
-                    
-                    {/* AST */}
-                    <div className="text-center flex-1">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {player.stats.ast}
+                      
+                      {/* AST */}
+                      <div className="text-center flex-1">
+                        <div className="text-2xl font-bold text-black mb-1">
+                          {player.stats.ast}
+                        </div>
+                        <div className="text-xs text-gray-500">AST</div>
                       </div>
-                      <div className="text-xs text-gray-600 mb-1">AST</div>
-                      <div className="text-xs text-gray-500">アシスト</div>
-                    </div>
-                    
-                    {/* FG% */}
-                    <div className="text-center flex-1">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {player.stats.fg}%
+                      
+                      {/* FG% */}
+                      <div className="text-center flex-1">
+                        <div className="text-2xl font-bold text-black mb-1">
+                          {player.stats.fg}%
+                        </div>
+                        <div className="text-xs text-gray-500">FG%</div>
                       </div>
-                      <div className="text-xs text-gray-600 mb-1">FG%</div>
-                      <div className="text-xs text-gray-500">FG成功率</div>
                     </div>
                   </div>
                 </div>
@@ -404,49 +406,51 @@ export default function PlayerDetailPage() {
 
             {/* スタッツ情報（モバイル） */}
             {player.stats && (
-              <div className="rounded-2xl bg-white p-6 shadow-lg">
-                <h3 className="mb-4 text-center text-sm text-gray-600">
-                  {player.stats.season}
-                </h3>
+              <div className="rounded-2xl shadow-xl overflow-hidden">
+                {/* ヘッダー部分 */}
+                <div className="bg-[#CC6666] px-4 py-3">
+                  <h3 className="text-center text-sm font-bold text-white">
+                    {player.stats.season}
+                  </h3>
+                </div>
                 
-                <div className="flex justify-between gap-2">
-                  {/* PTS */}
-                  <div className="text-center flex-1">
-                    <div className="text-xl font-bold text-gray-900 mb-1">
-                      {player.stats.pts}
+                {/* メイン部分 */}
+                <div className="bg-white px-4 py-4">
+                  <div className="flex justify-between gap-2">
+                    {/* PTS */}
+                    <div className="text-center flex-1">
+                      <div className="text-xl font-bold text-black mb-1">
+                        {player.stats.pts}
+                      </div>
+                      <div className="text-xs text-gray-500">PTS</div>
                     </div>
-                    <div className="text-xs text-gray-600 mb-1">PTS</div>
-                    <div className="text-xs text-gray-500">得点</div>
-                  </div>
-                  
-                  {/* REB */}
-                  <div className="text-center flex-1">
-                    <div className="text-xl font-bold text-gray-900 mb-1">
-                      {player.stats.reb}
+                    
+                    {/* REB */}
+                    <div className="text-center flex-1">
+                      <div className="text-xl font-bold text-black mb-1">
+                        {player.stats.reb}
+                      </div>
+                      <div className="text-xs text-gray-500">REB</div>
                     </div>
-                    <div className="text-xs text-gray-600 mb-1">REB</div>
-                    <div className="text-xs text-gray-500">リバウンド</div>
-                  </div>
-                  
-                  {/* AST */}
-                  <div className="text-center flex-1">
-                    <div className="text-xl font-bold text-gray-900 mb-1">
-                      {player.stats.ast}
+                    
+                    {/* AST */}
+                    <div className="text-center flex-1">
+                      <div className="text-xl font-bold text-black mb-1">
+                        {player.stats.ast}
+                      </div>
+                      <div className="text-xs text-gray-500">AST</div>
                     </div>
-                    <div className="text-xs text-gray-600 mb-1">AST</div>
-                    <div className="text-xs text-gray-500">アシスト</div>
-                  </div>
-                  
-                  {/* FG% */}
-                  <div className="text-center flex-1">
-                    <div className="text-xl font-bold text-gray-900 mb-1">
-                      {player.stats.fg}%
+                    
+                    {/* FG% */}
+                    <div className="text-center flex-1">
+                      <div className="text-xl font-bold text-black mb-1">
+                        {player.stats.fg}%
+                      </div>
+                      <div className="text-xs text-gray-500">FG%</div>
                     </div>
-                    <div className="text-xs text-gray-600 mb-1">FG%</div>
-                    <div className="text-xs text-gray-500">FG成功率</div>
                   </div>
+                </div>
               </div>
-            </div>
             )}
           </div>
         </div>
