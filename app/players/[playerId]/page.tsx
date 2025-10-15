@@ -110,8 +110,61 @@ export default function PlayerDetailPage() {
     return age;
   };
 
+  // 構造化データ（JSON-LD）を生成
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": player.name,
+    "jobTitle": player.position,
+    "worksFor": {
+      "@type": "SportsTeam",
+      "name": player.team
+    },
+    "sport": "Basketball",
+    "league": "NBA",
+    "image": player.imageUrl,
+    "birthDate": player.birthDate,
+    "nationality": player.country,
+    "height": player.height,
+    "weight": player.weight,
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": overallScore.toFixed(1),
+      "ratingCount": player.reviewCount || 0,
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "review": reviews.slice(0, 5).map(review => ({
+      "@type": "Review",
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": review.overallScore,
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "reviewBody": review.comment,
+      "author": {
+        "@type": "Person",
+        "name": review.userName || "匿名ユーザー"
+      },
+      "datePublished": review.createdAt
+    }))
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {/* SEO向けの見出し構造 */}
+      <div className="sr-only">
+        <h1>{player.name}の評価・評判 | {player.team}</h1>
+        <h2>{player.name}のファンレビューと総合評価</h2>
+        <h3>{player.name}の基本情報・スタッツ・契約状況</h3>
+      </div>
+
       {/* 選手ヘッダー */}
       <section className="gradient-bg py-8 sm:py-12 text-white">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -575,5 +628,6 @@ export default function PlayerDetailPage() {
         </div>
       </section>
     </div>
+    </>
   );
 }
