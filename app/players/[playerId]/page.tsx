@@ -10,8 +10,9 @@ import RadarChart from '@/components/RadarChart';
 import ReviewCard from '@/components/ReviewCard';
 import ReviewForm from '@/components/ReviewForm';
 import Pagination from '@/components/Pagination';
+import Link from 'next/link';
 
-const REVIEWS_PER_PAGE = 6; // 1ページあたりのレビュー数
+const REVIEWS_PER_PAGE = 6;
 
 export default function PlayerDetailPage() {
   const params = useParams();
@@ -34,7 +35,7 @@ export default function PlayerDetailPage() {
         setPlayer(playerData);
         setReviews(reviewsData);
       } catch (error) {
-        console.error('データの取得に失敗しました:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
@@ -45,60 +46,24 @@ export default function PlayerDetailPage() {
     }
   }, [playerId]);
 
-  // レビューが更新されたときにページをリセット
   useEffect(() => {
     setCurrentPage(1);
   }, [reviews]);
 
-  // ページネーション用の計算
   const totalPages = Math.ceil(reviews.length / REVIEWS_PER_PAGE);
   const startIndex = (currentPage - 1) * REVIEWS_PER_PAGE;
   const endIndex = startIndex + REVIEWS_PER_PAGE;
   const currentReviews = reviews.slice(startIndex, endIndex);
 
-  // ページ変更ハンドラー
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // レビューセクションにスクロール
     const reviewsSection = document.getElementById('reviews-section');
     if (reviewsSection) {
       reviewsSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!player) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        <div className="container mx-auto max-w-7xl px-4 py-16">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">選手が見つかりません</h1>
-            <p className="text-gray-600 mb-8">指定された選手が存在しないか、削除された可能性があります。</p>
-            <a href="/" className="btn-primary">ホームに戻る</a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 総合評価を計算
-  const summaryValues = Object.values(player.summary || {});
-  const overallScore =
-    summaryValues.length > 0
-      ? summaryValues.reduce((acc, val) => acc + val, 0) / summaryValues.length
-      : 0;
-  const overallGrade = numberToGrade(overallScore);
-
-  // 年齢の計算
+  // Age Calculation
   const calculateAge = (birthDate: string): number => {
     const today = new Date();
     const birth = new Date(birthDate);
@@ -110,7 +75,32 @@ export default function PlayerDetailPage() {
     return age;
   };
 
-  // 構造化データ（JSON-LD）を生成
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex justify-center items-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-orange-600"></div>
+      </div>
+    );
+  }
+
+  if (!player) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-slate-900 mb-4">選手が見つかりません</h1>
+          <Link href="/" className="text-orange-600 hover:text-orange-700 font-bold">ホームに戻る</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const summaryValues = Object.values(player.summary || {});
+  const overallScore =
+    summaryValues.length > 0
+      ? summaryValues.reduce((acc, val) => acc + val, 0) / summaryValues.length
+      : 0;
+  const overallGrade = numberToGrade(overallScore);
+
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -120,35 +110,14 @@ export default function PlayerDetailPage() {
       "@type": "SportsTeam",
       "name": player.team
     },
-    "sport": "Basketball",
-    "league": "NBA",
     "image": player.imageUrl,
-    "birthDate": player.birthDate,
-    "nationality": player.country,
-    "height": player.height,
-    "weight": player.weight,
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": overallScore.toFixed(1),
       "ratingCount": player.reviewCount || 0,
-      "bestRating": "5",
-      "worstRating": "1"
-    },
-    "review": reviews.slice(0, 5).map(review => ({
-      "@type": "Review",
-      "reviewRating": {
-        "@type": "Rating",
-        "ratingValue": review.overallScore,
-        "bestRating": "5",
-        "worstRating": "1"
-      },
-      "reviewBody": review.comment,
-      "author": {
-        "@type": "Person",
-        "name": review.userName || "匿名ユーザー"
-      },
-      "datePublished": review.createdAt
-    }))
+      "bestRating": "6",
+      "worstRating": "0"
+    }
   };
 
   return (
@@ -157,477 +126,269 @@ export default function PlayerDetailPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* SEO向けの見出し構造 */}
-      <div className="sr-only">
-        <h1>{player.name}の評価・評判 | {player.team}</h1>
-        <h2>{player.name}のファンレビューと総合評価</h2>
-        <h3>{player.name}の基本情報・スタッツ・契約状況</h3>
-      </div>
-
-      {/* 選手ヘッダー */}
-      <section className="gradient-bg py-8 sm:py-12 text-white">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* デスクトップ: 横並びレイアウト */}
-          <div className="hidden lg:flex lg:items-center lg:gap-12">
-            {/* 左側: 選手画像と基本情報 */}
-            <div className="flex items-center gap-8">
-              {/* 選手画像 */}
-              <div className="relative">
-                <div className="relative h-64 w-64 overflow-hidden rounded-2xl bg-white/20 backdrop-blur-sm">
-                  {player.imageUrl ? (
-                    <img
-                      src={player.imageUrl}
-                      alt={player.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <span className="text-8xl">👤</span>
+      <div className="min-h-screen bg-slate-50">
+        
+        {/* --- Hero Section --- */}
+        <section className="relative bg-slate-900 text-white overflow-hidden">
+           {/* Background Elements */}
+           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px]"></div>
+           <div className="absolute top-0 right-0 -mt-40 -mr-40 w-[500px] h-[500px] rounded-full bg-orange-500/20 blur-3xl"></div>
+           
+           <div className="container mx-auto max-w-7xl px-6 py-12 lg:py-20 relative z-10">
+             <div className="flex flex-col lg:flex-row gap-12 items-start">
+                
+                {/* Left Column: Image & Basic Info */}
+                <div className="w-full lg:w-auto flex flex-col items-center lg:items-start gap-8">
+                    <div className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-orange-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                        <div className="relative h-64 w-64 lg:h-80 lg:w-80 overflow-hidden rounded-xl bg-slate-800 ring-1 ring-white/10">
+                            {player.imageUrl ? (
+                            <img
+                                src={player.imageUrl}
+                                alt={player.name}
+                                className="h-full w-full object-cover object-top"
+                            />
+                            ) : (
+                            <div className="flex h-full w-full items-center justify-center text-slate-600">
+                                <span className="text-8xl">👤</span>
+                            </div>
+                            )}
+                        </div>
+                        {/* Grade Badge Overlay */}
+                         <div className="absolute -bottom-6 -right-6 w-24 h-24 flex items-center justify-center bg-slate-900 rounded-full border-4 border-slate-800 shadow-xl">
+                             <div className="text-center">
+                                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ランク</div>
+                                 <div className={`text-5xl font-bold font-oswald ${overallGrade === 'S' ? 'text-purple-500' : overallGrade === 'A' ? 'text-blue-500' : overallGrade === 'B' ? 'text-green-500' : 'text-orange-500'}`}>
+                                     {overallGrade}
+                                 </div>
+                             </div>
+                         </div>
                     </div>
-                  )}
                 </div>
-              </div>
 
-              {/* 基本情報 */}
-              <div className="flex-1">
-                <div className="mb-6">
-                  <h1 className="mb-3 text-4xl font-bold">
-                    {player.name}
-                  </h1>
-                  <div className="flex items-center gap-4 text-lg mb-4">
-                    <span className="rounded-full bg-white/20 px-4 py-2 font-medium backdrop-blur-sm">
-                      {player.team}
-                    </span>
-                    {player.position && (
-                      <span className="rounded-full bg-white/20 px-4 py-2 font-medium backdrop-blur-sm">
-                        {player.position}
-                      </span>
-                    )}
-                    {player.number && (
-                      <span className="rounded-full bg-white/20 px-4 py-2 font-medium backdrop-blur-sm">
-                        #{player.number}
-                      </span>
-                    )}
-                  </div>
-                  
-                  {/* 基本情報 */}
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-base">
-                    {player.height && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-white/80">身長/体重:</span>
-                        <span className="text-white/90">{player.height}, {player.weight}</span>
-                      </div>
-                    )}
-                    {player.birthDate && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-white/80">生年月日:</span>
-                        <span className="text-white/90">
-                          {new Date(player.birthDate).toLocaleDateString('ja-JP', {
-                            year: 'numeric',
-                            month: 'numeric',
-                            day: 'numeric'
-                          })} ({calculateAge(player.birthDate)}歳)
+                {/* Middle Column: Stats & Details */}
+                <div className="flex-1 w-full text-center lg:text-left">
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-4">
+                        <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-sm font-bold text-slate-300">
+                            {player.team}
                         </span>
-                      </div>
-                    )}
-                    {player.country && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-white/80">出身国:</span>
-                        <span className="text-white/90">{player.country}</span>
-                      </div>
-                    )}
-                    {player.draftYear && player.draftPick && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-white/80">ドラフト:</span>
-                        <span className="text-white/90">{player.draftYear}年 {player.draftPick}位</span>
-                      </div>
-                    )}
-                    {player.contractAmount && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-white/80">契約:</span>
-                        <span className="text-white/90">
-                          ${(player.contractAmount / 1000000).toFixed(1)}M
-                          {player.contractYears && ` (${player.contractYears}年)`}
+                        <span className="px-3 py-1 rounded-full bg-orange-600/20 border border-orange-600/30 text-sm font-bold text-orange-500">
+                            {player.position}
                         </span>
-                      </div>
+                         <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-sm font-bold text-slate-300">
+                            #{player.number}
+                        </span>
+                    </div>
+
+                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-oswald mb-8 tracking-wide">
+                        {player.name}
+                    </h1>
+
+                    {/* Player Details Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-10 text-left bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50">
+                        <div>
+                            <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">身長 / 体重</div>
+                            <div className="font-bold text-lg">{player.height || '-'} / {player.weight || '-'}</div>
+                        </div>
+                        <div>
+                            <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">生年月日</div>
+                            <div className="font-bold text-lg">
+                                {player.birthDate ? new Date(player.birthDate).toLocaleDateString('ja-JP') : '-'}
+                                {player.birthDate && <span className="text-sm text-slate-400 ml-1">({calculateAge(player.birthDate)})</span>}
+                            </div>
+                        </div>
+                         <div>
+                            <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">出身国</div>
+                            <div className="font-bold text-lg">{player.country || '-'}</div>
+                        </div>
+                        <div>
+                            <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">ドラフト</div>
+                            <div className="font-bold text-lg">
+                                {player.draftYear ? `${player.draftYear} - R${player.draftRound} (#${player.draftPick})` : 'Undrafted'}
+                            </div>
+                        </div>
+                         <div className="col-span-2 sm:col-span-4 border-t border-slate-700 pt-4 mt-2">
+                            <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">契約</div>
+                            <div className="font-bold text-xl text-green-400 font-mono">
+                                {player.contractAmount 
+                                    ? `$${player.contractAmount.toLocaleString()}` 
+                                    : '-'}
+                                {player.contractYears && <span className="text-sm text-slate-400 ml-2">/ {player.contractYears} 年</span>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap justify-center lg:justify-start gap-4">
+                        <button 
+                            onClick={() => setShowReviewForm(true)}
+                            className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-full transition-all shadow-lg hover:shadow-orange-500/25 flex items-center gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                            レビューを書く
+                        </button>
+                        <a href="#reviews-section" className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-8 rounded-full border border-slate-600 transition-all">
+                            みんなの評価を見る ({player.reviewCount})
+                        </a>
+                    </div>
+                </div>
+
+                {/* Right Column: Season Stats */}
+                {player.stats && (
+                    <div className="w-full lg:w-64 flex-shrink-0">
+                        <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+                             <div className="bg-slate-950 px-4 py-3 border-b border-slate-800">
+                                <h3 className="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                    シーズンスタッツ ({player.stats.season})
+                                </h3>
+                            </div>
+                            <div className="p-6 space-y-6">
+                                <div className="text-center">
+                                    <div className="text-4xl font-bold font-oswald text-white">{player.stats.pts}</div>
+                                    <div className="text-xs font-bold text-slate-500 uppercase">PTS</div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-700">
+                                     <div className="text-center">
+                                        <div className="text-xl font-bold font-oswald text-white">{player.stats.reb}</div>
+                                        <div className="text-[10px] font-bold text-slate-500 uppercase">REB</div>
+                                    </div>
+                                     <div className="text-center">
+                                        <div className="text-xl font-bold font-oswald text-white">{player.stats.ast}</div>
+                                        <div className="text-[10px] font-bold text-slate-500 uppercase">AST</div>
+                                    </div>
+                                </div>
+                                <div className="pt-4 border-t border-slate-700 text-center">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-400">FG%</span>
+                                        <span className="font-bold text-white">{player.stats.fg}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+             </div>
+           </div>
+        </section>
+
+        {/* --- Analysis Section --- */}
+        {Object.keys(player.summary || {}).length > 0 && (
+            <section className="py-16 container mx-auto max-w-7xl px-6">
+                <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 sm:p-12">
+                    <div className="grid lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <h2 className="text-3xl font-bold text-slate-900 font-oswald mb-4">コミュニティ分析</h2>
+                            <p className="text-slate-600 leading-relaxed mb-8">
+                                コミュニティによる16項目の詳細評価チャートです。<br/>
+                                多くのファンの視点から、選手の強みと特徴が可視化されています。
+                            </p>
+                            
+                            {/* Highlighted Stats */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                    <div className="text-xs text-slate-500 font-bold uppercase mb-1">総合スコア</div>
+                                    <div className="text-3xl font-bold text-slate-900 font-oswald">{overallScore.toFixed(2)} / 6.0</div>
+                                </div>
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                    <div className="text-xs text-slate-500 font-bold uppercase mb-1">総レビュー数</div>
+                                    <div className="text-3xl font-bold text-slate-900 font-oswald">{player.reviewCount}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="flex justify-center">
+                             <div className="w-full max-w-md">
+                                <RadarChart 
+                                    labels={Object.keys(player.summary || {}).map(itemId => {
+                                    const item = NBA_EVALUATION_ITEMS.find(item => item.itemId === itemId);
+                                    return item ? item.name : itemId;
+                                    })}
+                                    data={Object.values(player.summary || {})}
+                                    title={`${player.name}の分析`}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        )}
+
+        {/* --- Review Form Section (Conditional) --- */}
+        {showReviewForm && (
+            <section className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-slate-900/80 backdrop-blur-sm">
+                <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl relative animate-fade-in">
+                    <button 
+                        onClick={() => setShowReviewForm(false)}
+                        className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <div className="p-6 sm:p-8">
+                        <h2 className="text-2xl font-bold text-slate-900 font-oswald mb-6">レビューを書く</h2>
+                        <ReviewForm
+                            playerId={playerId}
+                            playerName={player.name}
+                            onSuccess={() => {
+                                setShowReviewForm(false);
+                                window.location.reload();
+                            }}
+                        />
+                    </div>
+                </div>
+            </section>
+        )}
+
+        {/* --- Reviews List Section --- */}
+        <section id="reviews-section" className="py-16 bg-slate-50 border-t border-slate-200">
+            <div className="container mx-auto max-w-7xl px-6">
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold text-slate-900 font-oswald uppercase tracking-wide mb-2">ファンレビュー</h2>
+                    <p className="text-slate-500">ファンのリアルな声</p>
+                </div>
+
+                {reviews.length > 0 ? (
+                    <>
+                    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                        {currentReviews.map((review) => (
+                        <ReviewCard key={review.reviewId} review={review} />
+                        ))}
+                    </div>
+                    
+                    {totalPages > 1 && (
+                        <div className="mt-12 flex justify-center">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                        />
+                        </div>
                     )}
-                  </div>
-                </div>
-
-                {/* 総合評価とレビュー数 */}
-                <div className="mb-6 flex items-center gap-8">
-                  <div className="text-center">
-                    <p className="mb-1 text-sm text-white/80">総合評価</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-bold">{overallGrade}</span>
-                      <span className="text-2xl text-white/80">
-                        {overallScore.toFixed(1)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="h-16 w-px bg-white/30"></div>
-                  
-                  <div className="text-center">
-                    <p className="mb-1 text-sm text-white/80">レビュー数</p>
-                    <div className="text-3xl font-bold">
-                      {player.reviewCount || 0}
-                    </div>
-                    <span className="text-sm text-white/80">件</span>
-                  </div>
-                </div>
-
-                {/* レビュー投稿ボタン */}
-                <button
-                  onClick={() => setShowReviewForm(true)}
-                  className="btn-primary bg-white text-primary hover:bg-gray-100"
-                >
-                  レビューを投稿する
-                </button>
-              </div>
-            </div>
-
-            {/* 右側: スタッツ情報 */}
-            {player.stats && (
-              <div className="ml-auto">
-                <div className="min-w-[360px] rounded-2xl shadow-xl overflow-hidden">
-                  {/* ヘッダー部分 */}
-                  <div className="bg-[#CC6666] px-4 py-3">
-                    <h3 className="text-center text-sm font-bold text-white">
-                      {player.stats.season}
-                    </h3>
-                  </div>
-                  
-                  {/* メイン部分 */}
-                  <div className="bg-white px-6 py-6">
-                    <div className="flex justify-between gap-6">
-                      {/* PTS */}
-                      <div className="text-center flex-1">
-                        <div className="text-2xl font-bold text-black mb-1">
-                          {player.stats.pts}
-                        </div>
-                        <div className="text-xs text-gray-500">PTS</div>
-                      </div>
-                      
-                      {/* REB */}
-                      <div className="text-center flex-1">
-                        <div className="text-2xl font-bold text-black mb-1">
-                          {player.stats.reb}
-                        </div>
-                        <div className="text-xs text-gray-500">REB</div>
-                      </div>
-                      
-                      {/* AST */}
-                      <div className="text-center flex-1">
-                        <div className="text-2xl font-bold text-black mb-1">
-                          {player.stats.ast}
-                        </div>
-                        <div className="text-xs text-gray-500">AST</div>
-                      </div>
-                      
-                      {/* FG% */}
-                      <div className="text-center flex-1">
-                        <div className="text-2xl font-bold text-black mb-1">
-                          {player.stats.fg}%
-                        </div>
-                        <div className="text-xs text-gray-500">FG%</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* モバイル: 縦並びレイアウト */}
-          <div className="lg:hidden">
-            {/* 選手画像 */}
-            <div className="mb-6 text-center">
-              <div className="relative h-48 w-48 mx-auto overflow-hidden rounded-2xl bg-white/20 backdrop-blur-sm">
-                {player.imageUrl ? (
-                  <img
-                    src={player.imageUrl}
-                    alt={player.name}
-                    className="h-full w-full object-cover"
-                  />
+                    </>
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <span className="text-6xl">👤</span>
-                  </div>
+                    <div className="max-w-lg mx-auto rounded-2xl border-2 border-dashed border-slate-300 bg-white p-12 text-center">
+                        <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">まだレビューがありません</h3>
+                        <p className="text-slate-500 mb-6">
+                            この選手の最初のレビューを投稿して、<br/>コミュニティを盛り上げましょう！
+                        </p>
+                        <button
+                            onClick={() => setShowReviewForm(true)}
+                            className="btn-primary"
+                        >
+                            レビューを投稿する
+                        </button>
+                    </div>
                 )}
-              </div>
             </div>
-
-            {/* 選手情報 */}
-            <div className="text-center mb-6">
-              <h1 className="mb-3 text-3xl font-bold">
-                  {player.name}
-                </h1>
-              <div className="flex flex-wrap justify-center gap-2 text-base mb-4">
-                <span className="rounded-full bg-white/20 px-3 py-1.5 font-medium backdrop-blur-sm">
-                    {player.team}
-                  </span>
-                  {player.position && (
-                  <span className="rounded-full bg-white/20 px-3 py-1.5 font-medium backdrop-blur-sm">
-                      {player.position}
-                    </span>
-                  )}
-                  {player.number && (
-                  <span className="rounded-full bg-white/20 px-3 py-1.5 font-medium backdrop-blur-sm">
-                      #{player.number}
-                    </span>
-                  )}
-                </div>
-                
-              {/* 基本情報 */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                  {player.height && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-white/80 whitespace-nowrap">身長/体重:</span>
-                    <span className="text-white/90 text-xs">{player.height}, {player.weight}</span>
-                    </div>
-                  )}
-                {player.birthDate && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-white/80 whitespace-nowrap">生年月日:</span>
-                    <span className="text-white/90 text-xs">
-                      {new Date(player.birthDate).toLocaleDateString('ja-JP', {
-                        year: 'numeric',
-                        month: 'numeric',
-                        day: 'numeric'
-                      })}
-                    </span>
-                    </div>
-                  )}
-                  {player.country && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-white/80 whitespace-nowrap">出身国:</span>
-                    <span className="text-white/90 text-xs">{player.country}</span>
-                  </div>
-                )}
-                {player.draftYear && player.draftPick && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-white/80 whitespace-nowrap">ドラフト:</span>
-                    <span className="text-white/90 text-xs">{player.draftYear}年 {player.draftPick}位</span>
-                    </div>
-                  )}
-                {player.contractAmount && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-white/80 whitespace-nowrap">契約:</span>
-                    <span className="text-white/90 text-xs">
-                      ${(player.contractAmount / 1000000).toFixed(1)}M
-                      {player.contractYears && ` (${player.contractYears}年)`}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-            {/* 総合評価とレビュー数 */}
-            <div className="mb-6 flex items-center justify-center gap-6">
-                <div className="text-center">
-                <p className="mb-1 text-xs text-white/80">総合評価</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">{overallGrade}</span>
-                  <span className="text-lg text-white/80">
-                      {overallScore.toFixed(1)}
-                    </span>
-                  </div>
-                </div>
-                
-              <div className="h-12 w-px bg-white/30"></div>
-                
-                <div className="text-center">
-                <p className="mb-1 text-xs text-white/80">レビュー数</p>
-                <div className="text-2xl font-bold">
-                    {player.reviewCount || 0}
-                  </div>
-                <span className="text-xs text-white/80">件</span>
-                </div>
-              </div>
-
-              {/* レビュー投稿ボタン */}
-            <div className="flex justify-center mb-6">
-                <button
-                  onClick={() => setShowReviewForm(true)}
-                  className="btn-primary bg-white text-primary hover:bg-gray-100"
-                >
-                  レビューを投稿する
-                </button>
-            </div>
-
-            {/* スタッツ情報（モバイル） */}
-            {player.stats && (
-              <div className="rounded-2xl shadow-xl overflow-hidden">
-                {/* ヘッダー部分 */}
-                <div className="bg-[#CC6666] px-4 py-3">
-                  <h3 className="text-center text-sm font-bold text-white">
-                    {player.stats.season}
-                  </h3>
-                </div>
-                
-                {/* メイン部分 */}
-                <div className="bg-white px-4 py-4">
-                  <div className="flex justify-between gap-2">
-                    {/* PTS */}
-                    <div className="text-center flex-1">
-                      <div className="text-xl font-bold text-black mb-1">
-                        {player.stats.pts}
-                      </div>
-                      <div className="text-xs text-gray-500">PTS</div>
-                    </div>
-                    
-                    {/* REB */}
-                    <div className="text-center flex-1">
-                      <div className="text-xl font-bold text-black mb-1">
-                        {player.stats.reb}
-                      </div>
-                      <div className="text-xs text-gray-500">REB</div>
-                    </div>
-                    
-                    {/* AST */}
-                    <div className="text-center flex-1">
-                      <div className="text-xl font-bold text-black mb-1">
-                        {player.stats.ast}
-                      </div>
-                      <div className="text-xs text-gray-500">AST</div>
-                    </div>
-                    
-                    {/* FG% */}
-                    <div className="text-center flex-1">
-                      <div className="text-xl font-bold text-black mb-1">
-                        {player.stats.fg}%
-                      </div>
-                      <div className="text-xs text-gray-500">FG%</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-
-      {/* レーダーチャート */}
-      {Object.keys(player.summary || {}).length > 0 && (
-        <section className="py-8 sm:py-16">
-          <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-6 sm:mb-12">
-              <h2 className="mb-2 sm:mb-4 text-2xl sm:text-3xl font-bold text-gray-900">総合評価チャート</h2>
-              <p className="text-sm sm:text-base text-gray-600 px-4">
-                ファンの評価を基にした16項目の詳細分析
-              </p>
-            </div>
-            
-            <div className="flex justify-center">
-              <div className="w-full max-w-sm sm:max-w-md lg:max-w-2xl">
-                <div className="aspect-square w-full">
-                  <RadarChart 
-                    labels={Object.keys(player.summary || {}).map(itemId => {
-                      const item = NBA_EVALUATION_ITEMS.find(item => item.itemId === itemId);
-                      return item ? item.name : itemId;
-                    })}
-                    data={Object.values(player.summary || {})}
-                    title={`${player.name}の総合評価`}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
-      )}
 
-      {/* レビューフォーム */}
-      {showReviewForm && (
-        <section className="py-4 sm:py-8 bg-gray-50">
-          <div className="container mx-auto max-w-4xl px-2 sm:px-4 lg:px-8">
-            <div className="card p-3 sm:p-6 lg:p-8">
-              <ReviewForm
-                playerId={playerId}
-                playerName={player.name}
-                onSuccess={() => {
-                  setShowReviewForm(false);
-                  // データを再取得
-                  window.location.reload();
-                }}
-              />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* レビュー一覧 */}
-      <section id="reviews-section" className="py-8 sm:py-16">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-6 sm:mb-12 text-center">
-            <h2 className="mb-2 sm:mb-4 text-2xl sm:text-3xl font-bold text-gray-900">ファンのレビュー</h2>
-            <p className="text-sm sm:text-base text-gray-600">
-              この選手に対するファンの声をお聞きください
-              {totalPages > 1 && (
-                <span className="block mt-2 text-xs text-gray-500">
-                  ページ {currentPage} / {totalPages} ({reviews.length}件中 {startIndex + 1}-{Math.min(endIndex, reviews.length)}件を表示)
-                </span>
-              )}
-            </p>
-          </div>
-
-          {reviews.length > 0 ? (
-            <>
-              <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {currentReviews.map((review) => (
-                  <ReviewCard key={review.reviewId} review={review} />
-                ))}
-              </div>
-              
-              {/* ページネーション */}
-              {totalPages > 1 && (
-                <div className="mt-8">
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={handlePageChange}
-                  />
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-12 text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-200">
-                  <svg
-                    className="h-8 w-8 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                まだレビューがありません
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                最初のレビューを投稿してみませんか？
-              </p>
-              <button
-                onClick={() => setShowReviewForm(true)}
-                className="btn-primary"
-              >
-                レビューを投稿する
-              </button>
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
+      </div>
     </>
   );
 }

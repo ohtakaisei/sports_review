@@ -11,68 +11,63 @@ export default function ReviewCard({ review }: ReviewCardProps) {
   const grade = numberToGrade(review.overallScore);
 
   return (
-    <div className="card p-4 sm:p-6 space-y-3 sm:space-y-4">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-            <svg
-              className="h-4 w-4 sm:h-6 sm:w-6 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
+    <div className="card p-6 space-y-4 bg-white hover:shadow-md transition-shadow border-l-4 border-l-orange-500">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-sm text-white font-bold">
+            {review.userName ? review.userName.charAt(0).toUpperCase() : 'A'}
           </div>
           <div>
-            <h4 className="text-sm sm:text-base font-semibold text-gray-900">
-              {review.userName || '匿名ユーザー'}
+            <h4 className="text-sm font-bold text-slate-900">
+              {review.userName || '匿名ファン'}
             </h4>
-            <p className="text-xs sm:text-sm text-gray-500">{formatRelativeTime(review.createdAt)}</p>
+            <p className="text-xs text-slate-500 font-medium">{formatRelativeTime(review.createdAt)}</p>
           </div>
         </div>
         
-        {/* 総合評価 */}
-        <div className="flex flex-col items-center">
-          <span className="text-xs text-gray-500">総合評価</span>
+        {/* Overall Grade */}
+        <div className="flex flex-col items-end">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">総合評価</span>
           <div className="flex items-baseline gap-1">
-            <span className={`text-lg sm:text-2xl font-bold ${getGradeColor(grade).split(' ')[0]}`}>
+            <span className={`text-2xl font-bold font-oswald ${getGradeColor(grade).split(' ')[0].replace('bg-', 'text-')}`}>
               {grade}
             </span>
-            <span className="text-xs sm:text-sm text-gray-500">
-              {review.overallScore.toFixed(1)}
+            <span className="text-sm text-slate-400 font-medium">
+              ({review.overallScore.toFixed(1)})
             </span>
           </div>
         </div>
       </div>
 
-      {/* コメント */}
-      <div className="space-y-2 sm:space-y-3">
-        <h5 className="text-sm sm:text-base font-medium text-gray-900">コメント</h5>
-        <p className="text-sm sm:text-base text-gray-700 leading-relaxed">{review.comment}</p>
+      {/* Comment */}
+      <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
+            {review.comment}
+        </p>
       </div>
 
-      {/* 詳細評価 */}
-      <div className="space-y-2 sm:space-y-3">
-        <h5 className="text-sm sm:text-base font-medium text-gray-900">詳細評価</h5>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 text-xs sm:text-sm">
+      {/* Detailed Scores */}
+      <div className="pt-2">
+        <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">詳細評価</h5>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {Object.entries(review.scores).map(([itemId, score]) => {
             const itemGrade = numberToGrade(score);
             const item = NBA_EVALUATION_ITEMS.find(item => item.itemId === itemId);
             const displayName = item ? item.name : itemId;
             
             return (
-              <div key={itemId} className="flex justify-between items-center">
-                <span className="text-gray-600 truncate mr-2">{displayName}</span>
-                <span className={`font-medium ${getGradeColor(itemGrade).split(' ')[0]} flex-shrink-0`}>
-                  {itemGrade}
-                </span>
+              <div key={itemId} className="flex flex-col bg-slate-50 p-2 rounded border border-slate-100">
+                <span className="text-[10px] text-slate-500 font-bold truncate mb-1">{displayName}</span>
+                <div className="flex items-center justify-between">
+                     <span className={`text-sm font-bold font-oswald ${getGradeColor(itemGrade).split(' ')[0].replace('bg-', 'text-')}`}>
+                      {itemGrade}
+                    </span>
+                    {/* Tiny visual bar */}
+                    <div className="h-1 w-8 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-orange-500" style={{ width: `${(score / 5) * 100}%` }}></div>
+                    </div>
+                </div>
               </div>
             );
           })}

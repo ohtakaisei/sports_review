@@ -13,28 +13,23 @@ export default function Pagination({
   onPageChange, 
   className = '' 
 }: PaginationProps) {
-  // 表示するページ番号を計算
   const getVisiblePages = () => {
-    const delta = 2; // 現在のページの前後何ページを表示するか
+    const delta = 2;
     const range = [];
     const rangeWithDots = [];
 
-    // 最初のページから最後のページまで
     for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
       range.push(i);
     }
 
-    // 最初のページを追加
     if (currentPage - delta > 2) {
       rangeWithDots.push(1, '...');
     } else {
       rangeWithDots.push(1);
     }
 
-    // 中間のページを追加
     rangeWithDots.push(...range);
 
-    // 最後のページを追加
     if (currentPage + delta < totalPages - 1) {
       rangeWithDots.push('...', totalPages);
     } else if (totalPages > 1) {
@@ -50,14 +45,13 @@ export default function Pagination({
 
   return (
     <div className={`flex items-center justify-center gap-2 ${className}`}>
-      {/* 前のページボタン */}
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+        className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
           currentPage === 1
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-orange-200 hover:text-orange-600 shadow-sm'
         }`}
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -66,21 +60,20 @@ export default function Pagination({
         前へ
       </button>
 
-      {/* ページ番号 */}
       <div className="flex items-center gap-1">
         {getVisiblePages().map((page, index) => (
           page === '...' ? (
-            <span key={`dots-${index}`} className="px-2 py-2 text-gray-400">
+            <span key={`dots-${index}`} className="px-2 py-2 text-slate-400 font-bold">
               ...
             </span>
           ) : (
             <button
               key={page}
               onClick={() => onPageChange(page as number)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
                 currentPage === page
-                  ? 'bg-primary text-white shadow-md'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                  ? 'bg-orange-600 text-white shadow-md shadow-orange-200'
+                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-orange-200 hover:text-orange-600 shadow-sm'
               }`}
             >
               {page}
@@ -89,14 +82,13 @@ export default function Pagination({
         ))}
       </div>
 
-      {/* 次のページボタン */}
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+        className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
           currentPage === totalPages
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-orange-200 hover:text-orange-600 shadow-sm'
         }`}
       >
         次へ
@@ -107,7 +99,3 @@ export default function Pagination({
     </div>
   );
 }
-
-
-
-

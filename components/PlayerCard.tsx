@@ -8,7 +8,7 @@ interface PlayerCardProps {
 }
 
 export default function PlayerCard({ player }: PlayerCardProps) {
-  // 総合評価の計算
+  // Calculate overall score
   const summaryValues = Object.values(player.summary || {});
   const overallScore =
     summaryValues.length > 0
@@ -16,78 +16,101 @@ export default function PlayerCard({ player }: PlayerCardProps) {
       : 0;
   const overallGrade = numberToGrade(overallScore);
 
-    return (
-      <Link href={`/players/${player.playerId}`}>
-        <div className="card group overflow-hidden transition-all duration-300 hover:scale-[1.02] h-full flex flex-col">
-          <div className="relative h-32 sm:h-48 lg:h-64 w-full overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
+  return (
+    <Link href={`/players/${player.playerId}`}>
+      <div className="card group h-full flex flex-col overflow-hidden bg-white hover:ring-2 hover:ring-orange-500/50 hover:shadow-2xl transition-all duration-300">
+        {/* Image Container */}
+        <div className="relative h-48 sm:h-56 lg:h-64 w-full overflow-hidden bg-slate-50 flex items-end justify-center pt-4">
+          {/* Abstract Background Pattern */}
+          <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#0f172a_1px,transparent_1px)] [background-size:16px_16px]"></div>
+          
           {player.imageUrl ? (
-            <Image
-              src={player.imageUrl}
-              alt={player.name}
-              fill
-              className="object-contain transition-transform duration-300 group-hover:scale-110"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <span className="text-3xl sm:text-5xl lg:text-6xl">👤</span>
-              </div>
-            )}
-            
-            {/* 総合評価バッジ */}
-            <div className="absolute right-1 top-1 sm:right-3 sm:top-3">
-              <div className={`flex flex-col items-center rounded-lg px-1.5 py-1 sm:px-3 sm:py-2 shadow-lg backdrop-blur-sm border-2 ${getGradeColor(overallGrade)}`}>
-                <span className="text-xs font-medium opacity-80">総合</span>
-                <span className="text-sm sm:text-xl lg:text-2xl font-bold">{overallGrade}</span>
-                <span className="text-xs opacity-70">{overallScore.toFixed(1)}</span>
-              </div>
+            <div className="relative h-full w-full transform transition-transform duration-500 group-hover:scale-110 group-hover:translate-y-2">
+                <Image
+                src={player.imageUrl}
+                alt={player.name}
+                fill
+                className="object-contain object-bottom"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                />
             </div>
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-slate-300">
+              <span className="text-6xl">👤</span>
+            </div>
+          )}
+          
+          {/* Grade Badge - Positioned absolutely */}
+          <div className="absolute right-4 top-4 z-10">
+            <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-full shadow-lg border-4 border-white ${getGradeColor(overallGrade)} text-white`}>
+              <span className="text-xl font-bold font-oswald leading-none">{overallGrade}</span>
+            </div>
+          </div>
+          
+           {/* Team Badge */}
+           <div className="absolute left-4 top-4 z-10">
+               <span className="inline-flex items-center rounded-md bg-white/90 px-2 py-1 text-xs font-bold text-slate-700 shadow-sm backdrop-blur-sm ring-1 ring-inset ring-slate-200">
+                 {player.position}
+               </span>
+           </div>
         </div>
 
-          <div className="p-3 sm:p-5 flex-1 flex flex-col">
-            <h3 className="mb-1 sm:mb-2 text-sm sm:text-base lg:text-lg font-bold text-gray-900 transition-colors group-hover:text-primary line-clamp-2 min-h-[2.5rem] sm:min-h-[3rem]">
-              {player.name}
-            </h3>
-            
-            <div className="mb-2 sm:mb-3 flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-gray-600">
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-medium">
-                {player.team}
-              </span>
-              {player.position && (
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-medium text-blue-700">
-                  {player.position}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-2 sm:pt-3 border-t mt-auto">
-              <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500">
-                <svg
-                  className="h-3 w-3 sm:h-4 sm:w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                  />
-                </svg>
-                <span className="font-medium">{player.reviewCount || 0}</span>
-                <span className="hidden sm:inline">件のレビュー</span>
-                <span className="sm:hidden">件</span>
+        {/* Content */}
+        <div className="p-5 flex-1 flex flex-col border-t border-slate-100">
+          <div className="flex items-start justify-between mb-2">
+              <div>
+                <p className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-1 font-oswald">
+                    {player.team}
+                </p>
+                <h3 className="text-lg font-bold text-slate-900 font-oswald tracking-wide leading-tight group-hover:text-orange-600 transition-colors">
+                    {player.name}
+                </h3>
               </div>
-              
-              <span className="text-xs sm:text-sm font-medium text-primary group-hover:underline">
-                <span className="hidden sm:inline">詳細を見る →</span>
-                <span className="sm:hidden">詳細 →</span>
-              </span>
+              <div className="text-right">
+                 <span className="text-2xl font-bold text-slate-200 font-oswald leading-none group-hover:text-slate-300 transition-colors">#{player.number}</span>
+              </div>
+          </div>
+
+          {/* Stats Preview (Optional - if available in data) */}
+          <div className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4">
+             <div className="text-center">
+                <span className="block text-[10px] uppercase text-slate-400 font-bold">PTS</span>
+                <span className="block text-sm font-bold text-slate-700 font-oswald">{player.stats?.pts ?? '-'}</span>
+             </div>
+             <div className="text-center border-l border-slate-100">
+                <span className="block text-[10px] uppercase text-slate-400 font-bold">REB</span>
+                <span className="block text-sm font-bold text-slate-700 font-oswald">{player.stats?.reb ?? '-'}</span>
+             </div>
+             <div className="text-center border-l border-slate-100">
+                <span className="block text-[10px] uppercase text-slate-400 font-bold">AST</span>
+                <span className="block text-sm font-bold text-slate-700 font-oswald">{player.stats?.ast ?? '-'}</span>
+             </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-4 mt-auto">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+              <svg
+                className="h-4 w-4 text-slate-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                />
+              </svg>
+              <span>{player.reviewCount || 0}件のレビュー</span>
             </div>
+            
+            <span className="text-xs font-bold text-orange-600 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-[-10px] group-hover:translate-x-0">
+              プロフィールを見る <span className="text-lg leading-none">›</span>
+            </span>
+          </div>
         </div>
       </div>
     </Link>
   );
 }
-
