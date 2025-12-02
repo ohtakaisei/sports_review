@@ -29,10 +29,10 @@ export default function Footer() {
                   <Link href="/about" className="hover:text-orange-500 transition-colors">サイトについて</Link>
               </li>
               <li>
-                  <Link href="/" className="hover:text-orange-500 transition-colors">利用規約</Link>
+                  <Link href="/terms" className="hover:text-orange-500 transition-colors">利用規約</Link>
               </li>
               <li>
-                  <Link href="/" className="hover:text-orange-500 transition-colors">プライバシーポリシー</Link>
+                  <Link href="/privacy" className="hover:text-orange-500 transition-colors">プライバシーポリシー</Link>
               </li>
             </ul>
           </div>
