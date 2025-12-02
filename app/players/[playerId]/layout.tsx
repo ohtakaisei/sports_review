@@ -2,12 +2,13 @@ import type { Metadata } from 'next';
 import { getPlayer } from '@/lib/firebase/firestore';
 
 interface PlayerLayoutProps {
-  params: { playerId: string };
+  params: Promise<{ playerId: string }>;
   children: React.ReactNode;
 }
 
 export async function generateMetadata({ params }: PlayerLayoutProps): Promise<Metadata> {
-  const player = await getPlayer(params.playerId);
+  const { playerId } = await params;
+  const player = await getPlayer(playerId);
   
   if (!player) {
     return {
@@ -60,7 +61,7 @@ export async function generateMetadata({ params }: PlayerLayoutProps): Promise<M
       images: player.imageUrl ? [player.imageUrl] : [],
     },
     alternates: {
-      canonical: `/players/${params.playerId}`,
+      canonical: `/players/${playerId}`,
     },
   };
 }

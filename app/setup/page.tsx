@@ -311,7 +311,7 @@ export default function SetupPage() {
             contractYears: player.contractYears || null
           };
 
-          const playerRef = doc(db, 'players', player.playerId);
+          const playerRef = doc(db, 'players', String(player.playerId));
           await setDoc(playerRef, playerData);
           success++;
           console.log(`✅ ${player.name} を追加しました`);
