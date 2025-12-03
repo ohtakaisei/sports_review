@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+// import { useGoogleReCaptcha } from 'react-google-recaptcha-v3'; // 一時的に無効化
 import {
   NBA_EVALUATION_ITEMS,
   CATEGORY_LABELS,
@@ -48,7 +48,9 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  
+  // reCAPTCHAは一時的に無効化（常にundefined）
+  const executeRecaptcha: ((action?: string) => Promise<string>) | undefined = undefined;
 
   const {
     register,
