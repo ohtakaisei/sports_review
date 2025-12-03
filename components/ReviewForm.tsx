@@ -72,14 +72,15 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
     setSubmitError(null);
 
     try {
-      // reCAPTCHAトークンを取得
-      if (!executeRecaptcha) {
-        throw new Error('reCAPTCHAが利用できません');
-      }
-
-      const recaptchaToken = await executeRecaptcha('review_submit');
-      if (!recaptchaToken) {
-        throw new Error('reCAPTCHA認証に失敗しました');
+      // reCAPTCHAトークンを取得（オプショナル）
+      let recaptchaToken: string | undefined;
+      if (executeRecaptcha) {
+        try {
+          recaptchaToken = await executeRecaptcha('review_submit');
+        } catch (error) {
+          console.warn('reCAPTCHA token取得に失敗しましたが、続行します:', error);
+          // reCAPTCHAが失敗しても続行
+        }
       }
 
       // スコアを数値に変換
@@ -97,7 +98,7 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
           playerId,
           comment: data.comment,
           scores: numericScores,
-          recaptchaToken, // reCAPTCHAトークンを追加
+          recaptchaToken: recaptchaToken || undefined, // reCAPTCHAトークン（オプショナル）
           userName: data.userName || undefined, // ユーザー名を追加
         }),
       });

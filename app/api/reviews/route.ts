@@ -8,16 +8,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { playerId, comment, scores, recaptchaToken, userName } = body;
 
-    // reCAPTCHA検証
-    if (process.env.RECAPTCHA_SECRET_KEY) {
-      if (!recaptchaToken) {
-        console.error('reCAPTCHA token is missing');
-        return NextResponse.json(
-          { message: 'reCAPTCHA認証に失敗しました: トークンが取得できませんでした' },
-          { status: 400 }
-        );
-      }
-
+    // reCAPTCHA検証（オプショナル：環境変数とトークンの両方が存在する場合のみ）
+    if (process.env.RECAPTCHA_SECRET_KEY && recaptchaToken) {
       try {
         const recaptchaResponse = await fetch(
           `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
@@ -34,34 +26,24 @@ export async function POST(request: NextRequest) {
         if (!recaptchaData.success) {
           const errorCodes = recaptchaData['error-codes'] || [];
           console.error('reCAPTCHA verification failed:', errorCodes);
-          return NextResponse.json(
-            { 
-              message: `reCAPTCHA認証に失敗しました: ${errorCodes.join(', ')}`,
-              errorCodes 
-            },
-            { status: 400 }
-          );
-        }
-        
-        if (recaptchaData.score < 0.5) {
+          // reCAPTCHA検証が失敗しても続行（オプショナルとして扱う）
+          console.warn('reCAPTCHA検証に失敗しましたが、レビュー投稿を続行します');
+        } else if (recaptchaData.score < 0.5) {
           console.warn('reCAPTCHA score too low:', recaptchaData.score);
-          return NextResponse.json(
-            { 
-              message: `reCAPTCHA認証に失敗しました: スコアが低すぎます (${recaptchaData.score})`,
-              score: recaptchaData.score 
-            },
-            { status: 400 }
-          );
+          // スコアが低くても続行（オプショナルとして扱う）
+          console.warn('reCAPTCHAスコアが低いですが、レビュー投稿を続行します');
         }
       } catch (error) {
         console.error('reCAPTCHA verification error:', error);
-        return NextResponse.json(
-          { message: 'reCAPTCHA認証中にエラーが発生しました' },
-          { status: 500 }
-        );
+        // エラーが発生しても続行（オプショナルとして扱う）
+        console.warn('reCAPTCHA検証中にエラーが発生しましたが、レビュー投稿を続行します');
       }
     } else {
-      console.warn('RECAPTCHA_SECRET_KEY is not configured, skipping reCAPTCHA validation');
+      if (process.env.RECAPTCHA_SECRET_KEY && !recaptchaToken) {
+        console.warn('RECAPTCHA_SECRET_KEY is configured but token is missing, skipping reCAPTCHA validation');
+      } else if (!process.env.RECAPTCHA_SECRET_KEY) {
+        console.log('RECAPTCHA_SECRET_KEY is not configured, skipping reCAPTCHA validation');
+      }
     }
 
     // バリデーション
