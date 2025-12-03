@@ -79,26 +79,55 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
         numericScores[itemId] = gradeToNumber(grade);
       });
 
-      const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          playerId,
-          comment: data.comment,
-          scores: numericScores,
-          userName: data.userName || undefined, // ユーザー名を追加
-          // reCAPTCHAトークンは送信しない（完全に無効化）
-        }),
-      });
+      // タイムアウト付きのfetchリクエスト
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒でタイムアウト
+
+      let response: Response;
+      try {
+        response = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            playerId,
+            comment: data.comment,
+            scores: numericScores,
+            userName: data.userName || undefined, // ユーザー名を追加
+            // reCAPTCHAトークンは送信しない（完全に無効化）
+          }),
+          signal: controller.signal,
+        });
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          throw new Error('リクエストがタイムアウトしました。しばらく待ってから再度お試しください。');
+        }
+        throw new Error('ネットワークエラーが発生しました。インターネット接続を確認してください。');
+      }
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const error = await response.json();
+        let error;
+        try {
+          error = await response.json();
+        } catch (jsonError) {
+          // JSONパースエラーの場合
+          const text = await response.text();
+          throw new Error(`サーバーエラー (${response.status}): ${text || '不明なエラー'}`);
+        }
+        
         if (response.status === 429) {
           // レート制限エラーの場合、特別なメッセージを表示
           throw new Error(`投稿制限に達しました。${error.resetTime ? `リセット時間: ${new Date(error.resetTime).toLocaleString('ja-JP')}` : ''}`);
         }
+        
+        if (response.status === 500) {
+          // サーバーエラーの場合、詳細なメッセージを表示
+          throw new Error(error.message || 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。');
+        }
+        
         throw new Error(error.message || 'レビューの投稿に失敗しました');
       }
 

@@ -128,9 +128,22 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Review submission error:', error);
     
+    // より詳細なエラーメッセージ
+    let errorMessage = 'レビューの投稿に失敗しました';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Firebase Admin SDKの初期化エラーの場合
+      if (error.message.includes('Firebase Admin SDK')) {
+        errorMessage = 'サーバー設定エラー: Firebase Admin SDKが正しく設定されていません。管理者にお問い合わせください。';
+      }
+    }
+    
     return NextResponse.json(
       {
-        message: error instanceof Error ? error.message : 'レビューの投稿に失敗しました',
+        message: errorMessage,
+        error: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : String(error) : undefined,
       },
       { status: 500 }
     );
