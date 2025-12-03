@@ -37,20 +37,49 @@ function getAdminApp(): App {
 
   // 環境変数のチェック
   if (!projectId || !clientEmail || !privateKey) {
+    console.error('Firebase Admin SDK環境変数の確認:');
+    console.error('- NEXT_PUBLIC_FIREBASE_PROJECT_ID:', projectId ? 'Set' : 'Missing');
+    console.error('- FIREBASE_CLIENT_EMAIL:', clientEmail ? 'Set' : 'Missing');
+    console.error('- FIREBASE_PRIVATE_KEY:', privateKey ? 'Set' : 'Missing');
     throw new Error(
       'Firebase Admin SDK の初期化に必要な環境変数が設定されていません。\n' +
-      '必要な環境変数: NEXT_PUBLIC_FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY'
+      '必要な環境変数: NEXT_PUBLIC_FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY\n' +
+      'Vercelで環境変数を設定した後、必ず再デプロイしてください。'
     );
   }
 
   // Admin SDKを初期化
-  adminApp = initializeApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey,
-    }),
-  });
+  try {
+    adminApp = initializeApp({
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      }),
+    });
+  } catch (error) {
+    console.error('Firebase Admin SDK initialization error:', error);
+    console.error('Project ID:', projectId);
+    console.error('Client Email:', clientEmail ? 'Set' : 'Not Set');
+    console.error('Private Key:', privateKey ? `Set (${privateKey.length} chars)` : 'Not Set');
+    
+    // より詳細なエラーメッセージ
+    if (error instanceof Error) {
+      if (error.message.includes('PEM')) {
+        throw new Error(
+          'Firebase Admin SDK初期化エラー: プライベートキーの形式が正しくありません。' +
+          'Vercelの環境変数でFIREBASE_PRIVATE_KEYの値が正しい形式（ダブルクォートなし、\\nを含む）か確認してください。'
+        );
+      }
+      if (error.message.includes('credential')) {
+        throw new Error(
+          'Firebase Admin SDK初期化エラー: 認証情報が無効です。' +
+          'FIREBASE_CLIENT_EMAILとFIREBASE_PRIVATE_KEYが正しいか確認してください。'
+        );
+      }
+    }
+    throw error;
+  }
 
   return adminApp;
 }

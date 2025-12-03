@@ -115,7 +115,17 @@ export async function POST(request: NextRequest) {
     const overallScore = calculateAverageScore(scores);
 
     // レビューを作成（Admin SDK使用）
-    const reviewId = await createReviewAdmin(playerId, comment, scores, overallScore, userName);
+    let reviewId: string;
+    try {
+      reviewId = await createReviewAdmin(playerId, comment, scores, overallScore, userName);
+    } catch (adminError) {
+      console.error('createReviewAdmin error:', adminError);
+      throw new Error(
+        adminError instanceof Error 
+          ? adminError.message 
+          : 'レビューの作成に失敗しました。Firebase Admin SDKの設定を確認してください。'
+      );
+    }
 
     return NextResponse.json(
       {
