@@ -49,8 +49,7 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   
-  // reCAPTCHAは一時的に無効化（常にundefined）
-  const executeRecaptcha: ((action?: string) => Promise<string>) | undefined = undefined;
+  // reCAPTCHAは完全に無効化
 
   const {
     register,
@@ -74,17 +73,6 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
     setSubmitError(null);
 
     try {
-      // reCAPTCHAトークンを取得（オプショナル）
-      let recaptchaToken: string | undefined;
-      if (executeRecaptcha) {
-        try {
-          recaptchaToken = await executeRecaptcha('review_submit');
-        } catch (error) {
-          console.warn('reCAPTCHA token取得に失敗しましたが、続行します:', error);
-          // reCAPTCHAが失敗しても続行
-        }
-      }
-
       // スコアを数値に変換
       const numericScores: Record<string, number> = {};
       Object.entries(data.scores).forEach(([itemId, grade]) => {
@@ -100,8 +88,8 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
           playerId,
           comment: data.comment,
           scores: numericScores,
-          recaptchaToken: recaptchaToken || undefined, // reCAPTCHAトークン（オプショナル）
           userName: data.userName || undefined, // ユーザー名を追加
+          // reCAPTCHAトークンは送信しない（完全に無効化）
         }),
       });
 
@@ -309,17 +297,6 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
         )}
       </button>
 
-      <p className="text-center text-xs text-gray-500 px-2">
-        このサイトはreCAPTCHA v3で保護されており、Googleの
-        <a href="https://policies.google.com/privacy" className="text-primary hover:underline">
-          プライバシーポリシー
-        </a>
-        と
-        <a href="https://policies.google.com/terms" className="text-primary hover:underline">
-          利用規約
-        </a>
-        が適用されます。
-      </p>
     </form>
   );
 }
