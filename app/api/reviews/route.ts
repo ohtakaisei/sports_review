@@ -9,19 +9,59 @@ export async function POST(request: NextRequest) {
     const { playerId, comment, scores, recaptchaToken, userName } = body;
 
     // reCAPTCHA検証
-    if (process.env.RECAPTCHA_SECRET_KEY && recaptchaToken) {
-      const recaptchaResponse = await fetch(
-        `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
-        { method: 'POST' }
-      );
-      const recaptchaData = await recaptchaResponse.json();
-      
-      if (!recaptchaData.success || recaptchaData.score < 0.5) {
+    if (process.env.RECAPTCHA_SECRET_KEY) {
+      if (!recaptchaToken) {
+        console.error('reCAPTCHA token is missing');
         return NextResponse.json(
-          { message: 'reCAPTCHA認証に失敗しました' },
+          { message: 'reCAPTCHA認証に失敗しました: トークンが取得できませんでした' },
           { status: 400 }
         );
       }
+
+      try {
+        const recaptchaResponse = await fetch(
+          `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+          { method: 'POST' }
+        );
+        const recaptchaData = await recaptchaResponse.json();
+        
+        console.log('reCAPTCHA verification result:', {
+          success: recaptchaData.success,
+          score: recaptchaData.score,
+          errors: recaptchaData['error-codes'],
+        });
+        
+        if (!recaptchaData.success) {
+          const errorCodes = recaptchaData['error-codes'] || [];
+          console.error('reCAPTCHA verification failed:', errorCodes);
+          return NextResponse.json(
+            { 
+              message: `reCAPTCHA認証に失敗しました: ${errorCodes.join(', ')}`,
+              errorCodes 
+            },
+            { status: 400 }
+          );
+        }
+        
+        if (recaptchaData.score < 0.5) {
+          console.warn('reCAPTCHA score too low:', recaptchaData.score);
+          return NextResponse.json(
+            { 
+              message: `reCAPTCHA認証に失敗しました: スコアが低すぎます (${recaptchaData.score})`,
+              score: recaptchaData.score 
+            },
+            { status: 400 }
+          );
+        }
+      } catch (error) {
+        console.error('reCAPTCHA verification error:', error);
+        return NextResponse.json(
+          { message: 'reCAPTCHA認証中にエラーが発生しました' },
+          { status: 500 }
+        );
+      }
+    } else {
+      console.warn('RECAPTCHA_SECRET_KEY is not configured, skipping reCAPTCHA validation');
     }
 
     // バリデーション
