@@ -53,6 +53,7 @@ export interface Player {
   stats?: PlayerStats; // スタッツ情報
   contractAmount?: number; // 契約金額（年俸、ドル）
   contractYears?: number; // 契約年数
+  shopUrl?: string; // グッズ購入URL（任意）
 }
 
 // レビュー

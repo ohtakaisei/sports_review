@@ -3,10 +3,10 @@ import { deleteReviewAndUpdatePlayer, recalculatePlayerSummary } from '@/lib/fir
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { reviewId: string } }
+  { params }: { params: Promise<{ reviewId: string }> }
 ) {
   try {
-    const { reviewId } = params;
+    const { reviewId } = await params;
 
     if (!reviewId) {
       return NextResponse.json(

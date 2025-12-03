@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { collection, doc, setDoc, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Player } from '@/lib/types';
@@ -270,7 +271,7 @@ export default function SetupPage() {
 
   const hasActiveFilters = searchTerm || selectedTeam !== 'all' || selectedPosition !== 'all';
 
-  const addPlayers = async (players: any[]) => {
+  const addPlayers = async (players: Array<Record<string, unknown>>) => {
     setLoading(true);
     setResult(null);
     setError(null);
@@ -308,7 +309,8 @@ export default function SetupPage() {
             draftPick: player.draftPick || null,
             stats: player.stats || null,
             contractAmount: player.contractAmount || null,
-            contractYears: player.contractYears || null
+            contractYears: player.contractYears || null,
+            shopUrl: player.shopUrl || null
           };
 
           const playerRef = doc(db, 'players', String(player.playerId));
@@ -377,6 +379,7 @@ export default function SetupPage() {
         stats: updatedPlayer.stats || null,
         contractAmount: updatedPlayer.contractAmount || null,
         contractYears: updatedPlayer.contractYears || null,
+        shopUrl: updatedPlayer.shopUrl || null,
       });
       
       // ローカルの状態を更新
@@ -955,9 +958,9 @@ service cloud.firestore {
                       <p className="text-sm text-gray-600">
                         選手一覧が表示されることを確認
                       </p>
-                      <a href="/" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:underline">
+                      <Link href="/" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:underline">
                         トップページを見る →
-                      </a>
+                      </Link>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -977,9 +980,9 @@ service cloud.firestore {
 
         {/* 戻るリンク */}
         <div className="mt-8 text-center">
-          <a href="/" className="text-sm text-gray-600 hover:text-gray-900">
+          <Link href="/" className="text-sm text-gray-600 hover:text-gray-900">
             ← トップページに戻る
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -1145,6 +1148,18 @@ function EditPlayerModal({
                 placeholder="https://example.com/image.png"
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">グッズ購入URL (shopUrl)</label>
+              <input
+                type="url"
+                value={formData.shopUrl || ''}
+                onChange={(e) => setFormData({ ...formData, shopUrl: e.target.value })}
+                placeholder="https://example.com/shop"
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">選手詳細ページに「選手のグッズを見る」ボタンとして表示されます</p>
             </div>
 
             {/* ドラフト情報 */}

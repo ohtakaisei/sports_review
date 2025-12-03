@@ -92,14 +92,22 @@ npm run dev
 
 ## 🚀 デプロイ
 
-### Vercelへのデプロイ
+### Vercelへのデプロイ（推奨）
+
+詳細な手順は[VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md)を参照してください。
+
+**クイックスタート:**
 
 1. [Vercel](https://vercel.com)アカウントを作成
 2. GitHubリポジトリと連携
-3. 環境変数を設定
+3. 環境変数を設定（[ENV_VARIABLES.md](./ENV_VARIABLES.md)を参照）
 4. デプロイ
 
+**デプロイ前のチェックリスト:**
+- [DEPLOY_CHECKLIST.md](./DEPLOY_CHECKLIST.md)で確認
+
 ```bash
+# ローカルでビルド確認
 npm run build
 ```
 

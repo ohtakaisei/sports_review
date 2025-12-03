@@ -1,6 +1,6 @@
 import { getAdminFirestore } from './admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { Player } from '@/lib/types';
+import { Player, Review } from '@/lib/types';
 
 /**
  * サーバー側専用のFirestore操作関数
@@ -9,6 +9,59 @@ import { Player } from '@/lib/types';
  * Firebase Admin SDKを使用することで、セキュリティルールをバイパスして
  * データベースへの書き込みが可能になります。
  */
+
+/**
+ * 特定の選手を取得（Admin SDK使用）
+ * 
+ * @param playerId - 選手ID
+ * @returns 選手データ
+ */
+export async function getPlayerAdmin(playerId: string): Promise<Player | null> {
+  const db = getAdminFirestore();
+  const playerDoc = db.collection('players').doc(playerId);
+  const snapshot = await playerDoc.get();
+  
+  if (!snapshot.exists) {
+    return null;
+  }
+  
+  return { ...snapshot.data(), playerId: snapshot.id } as Player;
+}
+
+/**
+ * 選手のレビューを取得（Admin SDK使用）
+ * 
+ * @param playerId - 選手ID
+ * @param limitCount - 取得件数
+ * @returns レビュー一覧
+ */
+export async function getPlayerReviewsAdmin(
+  playerId: string,
+  limitCount: number = 20
+): Promise<Review[]> {
+  const db = getAdminFirestore();
+  const reviewsCol = db.collection('reviews');
+  
+  const q = reviewsCol
+    .where('playerId', '==', playerId)
+    .where('status', '==', 'published')
+    .orderBy('createdAt', 'desc')
+    .limit(limitCount);
+  
+  const snapshot = await q.get();
+  
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    // TimestampをDate文字列に変換
+    const createdAt = data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString();
+    
+    return {
+      ...data,
+      reviewId: doc.id,
+      createdAt,
+    } as Review;
+  });
+}
 
 /**
  * レビューを投稿（Admin SDK使用）
@@ -159,4 +212,3 @@ export async function checkPlayerExists(playerId: string): Promise<boolean> {
   
   return playerSnap.exists;
 }
-

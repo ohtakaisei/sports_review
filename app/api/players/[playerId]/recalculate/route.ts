@@ -3,10 +3,10 @@ import { recalculatePlayerSummary } from '@/lib/firebase/admin-firestore';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { playerId: string } }
+  { params }: { params: Promise<{ playerId: string }> }
 ) {
   try {
-    const { playerId } = params;
+    const { playerId } = await params;
 
     if (!playerId) {
       return NextResponse.json(
