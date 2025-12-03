@@ -57,6 +57,9 @@ export default function HomePage() {
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-72 h-72 rounded-full bg-blue-500/20 blur-3xl"></div>
 
         <div className="container relative mx-auto max-w-7xl px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center rounded-full bg-blue-500/20 px-4 py-1.5 text-xs font-bold text-blue-300 ring-2 ring-inset ring-blue-500/30 mb-4 animate-fade-in uppercase tracking-wider">
+            🧪 BETA版
+          </div>
           <div className="inline-flex items-center rounded-full bg-orange-500/10 px-3 py-1 text-sm font-medium text-orange-400 ring-1 ring-inset ring-orange-500/20 mb-6 animate-fade-in">
             Next Gen Sports Analytics
           </div>
