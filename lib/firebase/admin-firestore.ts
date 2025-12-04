@@ -66,9 +66,9 @@ export async function getPlayerReviewsAdmin(
 /**
  * レビューを投稿（Admin SDK使用）
  * 
- * トランザクションで以下を同時に実行：
- * 1. レビューをreviewsコレクションに追加
- * 2. 選手データ（reviewCount, summary）を更新
+ * シンプルな書き込み操作：
+ * 1. 選手が存在するか確認
+ * 2. レビューをreviewsコレクションに追加
  * 
  * @param playerId - 選手ID
  * @param comment - レビューコメント
@@ -84,37 +84,48 @@ export async function createReviewAdmin(
   overallScore: number,
   userName?: string
 ): Promise<string> {
-  const db = getAdminFirestore();
+  console.log('[createReviewAdmin] Starting, playerId:', playerId);
   
-  // レビューデータを準備
-  const reviewData = {
-    playerId,
-    comment,
-    scores,
-    overallScore,
-    status: 'published',
-    createdAt: FieldValue.serverTimestamp(),
-    ...(userName && { userName }), // ユーザー名がある場合のみ追加
-  };
-  
-  // レビューを作成（選手データの更新は不要 - リアルタイム集計を使用）
-  const reviewRef = db.collection('reviews').doc();
-  await db.runTransaction(async (transaction) => {
-    // 選手が存在するか確認
+  try {
+    console.log('[createReviewAdmin] Getting Admin Firestore instance...');
+    const db = getAdminFirestore();
+    console.log('[createReviewAdmin] Admin Firestore instance obtained');
+    
+    // まず選手が存在するか確認（トランザクション外で）
     const playerRef = db.collection('players').doc(playerId);
-    const playerSnap = await transaction.get(playerRef);
+    const playerSnap = await playerRef.get();
     
     if (!playerSnap.exists) {
+      console.error('[createReviewAdmin] Player not found:', playerId);
       throw new Error('選手が見つかりません');
     }
+    console.log('[createReviewAdmin] Player exists');
     
-    // レビューを作成
-    transaction.set(reviewRef, reviewData);
-  });
-  
-  const reviewId = reviewRef.id;
-  
-  return reviewId;
+    // レビューデータを準備
+    const reviewData = {
+      playerId,
+      comment,
+      scores,
+      overallScore,
+      status: 'published',
+      createdAt: FieldValue.serverTimestamp(),
+      ...(userName && { userName }), // ユーザー名がある場合のみ追加
+    };
+    
+    console.log('[createReviewAdmin] Review data prepared, creating review...');
+    
+    // レビューを作成（トランザクションなしでシンプルに書き込み）
+    const reviewRef = db.collection('reviews').doc();
+    await reviewRef.set(reviewData);
+    
+    console.log('[createReviewAdmin] Review created, reviewId:', reviewRef.id);
+    const reviewId = reviewRef.id;
+    
+    return reviewId;
+  } catch (error) {
+    console.error('[createReviewAdmin] Error:', error);
+    throw error;
+  }
 }
 
 /**

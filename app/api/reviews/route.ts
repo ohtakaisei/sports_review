@@ -3,10 +3,32 @@ import { createReviewAdmin } from '@/lib/firebase/admin-firestore';
 import { calculateAverageScore } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/utils/rate-limit';
 
+// タイムアウト付きPromiseラッパー
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`操作がタイムアウトしました (${timeoutMs / 1000}秒)`));
+    }, timeoutMs);
+
+    promise
+      .then((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
 export async function POST(request: NextRequest) {
+  console.log('[API] Review submission started');
+  const startTime = Date.now();
   try {
     const body = await request.json();
     const { playerId, comment, scores, recaptchaToken, userName } = body;
+    console.log('[API] Request body parsed, playerId:', playerId);
 
     // reCAPTCHA検証（オプショナル：環境変数とトークンの両方が存在する場合のみ）
     if (process.env.RECAPTCHA_SECRET_KEY && recaptchaToken) {
@@ -39,11 +61,7 @@ export async function POST(request: NextRequest) {
         console.warn('reCAPTCHA検証中にエラーが発生しましたが、レビュー投稿を続行します');
       }
     } else {
-      if (process.env.RECAPTCHA_SECRET_KEY && !recaptchaToken) {
-        console.warn('RECAPTCHA_SECRET_KEY is configured but token is missing, skipping reCAPTCHA validation');
-      } else if (!process.env.RECAPTCHA_SECRET_KEY) {
-        console.log('RECAPTCHA_SECRET_KEY is not configured, skipping reCAPTCHA validation');
-      }
+      // reCAPTCHAが設定されていない場合は何もログを出さない（正常な動作）
     }
 
     // バリデーション
@@ -114,12 +132,32 @@ export async function POST(request: NextRequest) {
     // 総合評価を計算
     const overallScore = calculateAverageScore(scores);
 
-    // レビューを作成（Admin SDK使用）
+    // レビューを作成（Admin SDK使用）- 15秒タイムアウト
+    console.log('[API] Starting review creation with Admin SDK...');
     let reviewId: string;
     try {
-      reviewId = await createReviewAdmin(playerId, comment, scores, overallScore, userName);
+      reviewId = await withTimeout(
+        createReviewAdmin(playerId, comment, scores, overallScore, userName),
+        15000 // 15秒タイムアウト
+      );
+      const elapsed = Date.now() - startTime;
+      console.log(`[API] Review created successfully, reviewId: ${reviewId}, elapsed: ${elapsed}ms`);
     } catch (adminError) {
-      console.error('createReviewAdmin error:', adminError);
+      console.error('[API] createReviewAdmin error:', adminError);
+      
+      // エラーメッセージを解析
+      const errorMessage = adminError instanceof Error ? adminError.message : String(adminError);
+      
+      // クォータ超過エラー
+      if (errorMessage.includes('RESOURCE_EXHAUSTED') || errorMessage.includes('Quota exceeded')) {
+        throw new Error('現在サーバーが混み合っています。しばらく時間をおいてから再度お試しください。（クォータ制限）');
+      }
+      
+      // タイムアウトエラー
+      if (errorMessage.includes('タイムアウト')) {
+        throw new Error('サーバーの応答に時間がかかっています。しばらく待ってから再度お試しください。');
+      }
+      
       throw new Error(
         adminError instanceof Error 
           ? adminError.message 
@@ -127,6 +165,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const totalElapsed = Date.now() - startTime;
+    console.log(`[API] Returning success response, total elapsed: ${totalElapsed}ms`);
     return NextResponse.json(
       {
         success: true,

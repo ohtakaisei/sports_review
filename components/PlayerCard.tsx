@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Player } from '@/lib/types';
-import { numberToGrade, getGradeColor } from '@/lib/utils';
+import { numberToGrade, getGradeColorForBadge } from '@/lib/utils';
 
 interface PlayerCardProps {
   player: Player;
@@ -42,8 +42,8 @@ export default function PlayerCard({ player }: PlayerCardProps) {
           
           {/* Grade Badge - Positioned absolutely */}
           <div className="absolute right-4 top-4 z-10">
-            <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-full shadow-lg border-4 border-white ${getGradeColor(overallGrade)} text-white`}>
-              <span className="text-xl font-bold font-oswald leading-none">{overallGrade}</span>
+            <div className={`flex flex-col items-center justify-center w-16 h-16 rounded-full shadow-xl border-4 border-white backdrop-blur-sm ${getGradeColorForBadge(overallGrade)}`}>
+              <span className="text-2xl font-bold font-oswald leading-none drop-shadow-md">{overallGrade}</span>
             </div>
           </div>
           

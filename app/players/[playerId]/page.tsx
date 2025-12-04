@@ -9,8 +9,8 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { playerId } = await params;
+  // メタデータ用には最小限のデータのみ取得（クォータ節約）
   const player = await getPlayer(playerId);
-  const reviews = await getPlayerReviews(playerId);
 
   if (!player) {
     return {
@@ -19,20 +19,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
+  // メタデータ生成用の最小限の説明文
+  const description = `${player.name}(${player.team})の評価・評判をチェック。ファンによる詳細なレビューと総合評価を確認できます。`;
+
   return {
     title: generatePlayerTitle(player),
-    description: generatePlayerDescription(player, reviews),
+    description,
     keywords: generatePlayerKeywords(player),
     openGraph: {
       title: generatePlayerTitle(player),
-      description: generatePlayerDescription(player, reviews),
+      description,
       images: player.imageUrl ? [{ url: player.imageUrl }] : [],
       type: 'profile',
     },
     twitter: {
       card: 'summary_large_image',
       title: generatePlayerTitle(player),
-      description: generatePlayerDescription(player, reviews),
+      description,
       images: player.imageUrl ? [player.imageUrl] : [],
     },
   };
@@ -40,6 +43,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function Page({ params }: PageProps) {
   const { playerId } = await params;
+  // ページ表示用のデータ取得（メタデータとは別）
   const player = await getPlayer(playerId);
   const reviews = await getPlayerReviews(playerId);
 

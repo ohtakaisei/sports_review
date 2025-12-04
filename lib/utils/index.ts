@@ -68,3 +68,17 @@ export function getGradeColor(grade: ScoreGrade): string {
   return colorMap[grade];
 }
 
+// バッジ用のグレード色を返す（濃い背景 + 白文字で視認性向上）
+export function getGradeColorForBadge(grade: ScoreGrade): string {
+  const colorMap: Record<ScoreGrade, string> = {
+    S: 'bg-purple-600 text-white', // 濃い紫背景 + 白文字
+    A: 'bg-blue-600 text-white',   // 濃い青背景 + 白文字
+    B: 'bg-green-600 text-white',  // 濃い緑背景 + 白文字
+    C: 'bg-yellow-500 text-white', // 濃い黄色背景 + 白文字
+    D: 'bg-orange-600 text-white', // 濃いオレンジ背景 + 白文字
+    E: 'bg-red-600 text-white',    // 濃い赤背景 + 白文字
+    F: 'bg-gray-700 text-white',   // 濃いグレー背景 + 白文字
+  };
+  return colorMap[grade];
+}
+
