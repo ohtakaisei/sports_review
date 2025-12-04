@@ -1,6 +1,18 @@
 import { getAdminFirestore } from './admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { Player, Review } from '@/lib/types';
+import { Player, Review, ScoreGrade } from '@/lib/types';
+
+// 数値からランク（S~F）を計算
+function calculateRank(score: number): ScoreGrade {
+  const rounded = Math.round(score);
+  if (rounded >= 6) return 'S';
+  if (rounded >= 5) return 'A';
+  if (rounded >= 4) return 'B';
+  if (rounded >= 3) return 'C';
+  if (rounded >= 2) return 'D';
+  if (rounded >= 1) return 'E';
+  return 'F';
+}
 
 /**
  * サーバー側専用のFirestore操作関数
@@ -143,10 +155,18 @@ export async function createReviewAdmin(
         }
       });
       
-      // 選手データを更新
+      // 総合スコアから新しいランクを計算
+      const summaryValues = Object.values(newSummary);
+      const overallScore = summaryValues.length > 0
+        ? summaryValues.reduce((acc, val) => acc + val, 0) / summaryValues.length
+        : 0;
+      const newRank = calculateRank(overallScore);
+      
+      // 選手データを更新（ランクも含む）
       transaction.update(playerRef, {
         reviewCount: currentReviewCount + 1,
         summary: newSummary,
+        rank: newRank, // 総合ランクを保存
         updatedAt: FieldValue.serverTimestamp(),
       });
     });

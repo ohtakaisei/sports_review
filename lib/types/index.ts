@@ -40,6 +40,7 @@ export interface Player {
   imageUrl: string;
   reviewCount: number;
   summary: Record<string, number>; // itemId: 平均スコア
+  rank: ScoreGrade; // 総合ランク（S~F）- レビュー投稿時に自動計算・保存
   position?: string;
   number?: number;
   height?: string;

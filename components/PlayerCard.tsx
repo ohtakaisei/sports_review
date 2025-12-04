@@ -1,20 +1,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Player } from '@/lib/types';
-import { numberToGrade, getGradeColorForBadge } from '@/lib/utils';
+import { getGradeColorForBadge } from '@/lib/utils';
 
 interface PlayerCardProps {
   player: Player;
 }
 
 export default function PlayerCard({ player }: PlayerCardProps) {
-  // Calculate overall score
-  const summaryValues = Object.values(player.summary || {});
-  const overallScore =
-    summaryValues.length > 0
-      ? summaryValues.reduce((acc, val) => acc + val, 0) / summaryValues.length
-      : 0;
-  const overallGrade = numberToGrade(overallScore);
+  // 保存済みのランクを使用（計算不要）
+  // フォールバック: rankが未設定の場合は"F"を使用
+  const overallGrade = player.rank || 'F';
 
   return (
     <Link href={`/players/${player.playerId}`}>

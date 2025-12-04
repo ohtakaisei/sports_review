@@ -303,6 +303,7 @@ export default function SetupPage() {
             imageUrl: player.imageUrl || '',
             reviewCount: player.reviewCount || 0,
             summary: player.summary || {},
+            rank: player.rank || 'F', // 総合ランク（初期値: F）
             // 新しいフィールドを追加
             draftYear: player.draftYear || null,
             draftRound: player.draftRound || null,

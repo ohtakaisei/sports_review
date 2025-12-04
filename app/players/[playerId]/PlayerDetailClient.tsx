@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Player, Review } from '@/lib/types';
-import { numberToGrade } from '@/lib/utils';
 import { NBA_EVALUATION_ITEMS } from '@/lib/types';
 import RadarChart from '@/components/RadarChart';
 import ReviewCard from '@/components/ReviewCard';
@@ -94,12 +93,15 @@ export default function PlayerDetailClient({ initialPlayer, initialReviews, play
     );
   }
 
+  // 保存済みのランクを使用（計算不要）
+  const overallGrade = player.rank || 'F';
+  
+  // 構造化データ用の総合スコアを計算
   const summaryValues = Object.values(player.summary || {});
   const overallScore =
     summaryValues.length > 0
       ? summaryValues.reduce((acc, val) => acc + val, 0) / summaryValues.length
       : 0;
-  const overallGrade = numberToGrade(overallScore);
 
   const structuredData = {
     "@context": "https://schema.org",
