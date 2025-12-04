@@ -13,11 +13,16 @@ interface HomePageClientProps {
 }
 
 export default function HomePageClient({ initialPlayers }: HomePageClientProps) {
-  const [players] = useState<Player[]>(initialPlayers);
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>(initialPlayers);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isInitialState, setIsInitialState] = useState(true);
 
-  const handleFilterChange = (filtered: Player[]) => {
+  const handleFilterChange = async (filtered: Player[], isSearch: boolean = false) => {
+    if (isSearch) {
+      setIsInitialState(false);
+    }
+    
     setFilteredPlayers(filtered);
     setCurrentPage(1);
   };
@@ -49,48 +54,48 @@ export default function HomePageClient({ initialPlayers }: HomePageClientProps) 
                   )}
               </div>
 
-              {players.length > 0 ? (
-                  <>
-                  <PlayerFilter
-                      players={players}
-                      onFilterChange={handleFilterChange}
-                  />
-                  
-                  {/* Spacer */}
-                  <div className="h-8"></div>
+              <PlayerFilter
+                  initialPlayers={initialPlayers}
+                  onFilterChange={handleFilterChange}
+                  onSearchingChange={setIsSearching}
+              />
+              
+              {/* Spacer */}
+              <div className="h-8"></div>
 
-                  {filteredPlayers.length > 0 ? (
-                      <>
-                      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          {currentPlayers.map((player) => (
-                          <PlayerCard key={player.playerId} player={player} />
-                          ))}
-                      </div>
-                      
-                      {totalPages > 1 && (
-                          <div className="mt-12 flex justify-center">
-                          <Pagination
-                              currentPage={currentPage}
-                              totalPages={totalPages}
-                              onPageChange={handlePageChange}
-                          />
-                          </div>
-                      )}
-                      </>
-                  ) : (
-                      <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-16 text-center">
-                          <div className="mx-auto h-12 w-12 text-slate-300 mb-4">
-                              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
-                          </div>
-                          <h3 className="text-lg font-bold text-slate-900">選手が見つかりません</h3>
-                          <p className="text-slate-500 mt-1">検索条件を変更して再度お試しください。</p>
+              {isSearching ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-orange-600"></div>
+                </div>
+              ) : filteredPlayers.length > 0 ? (
+                  <>
+                  <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {currentPlayers.map((player) => (
+                      <PlayerCard key={player.playerId} player={player} />
+                      ))}
+                  </div>
+                  
+                  {totalPages > 1 && (
+                      <div className="mt-12 flex justify-center">
+                      <Pagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={handlePageChange}
+                      />
                       </div>
                   )}
                   </>
               ) : (
                   <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-16 text-center">
-                      <h3 className="text-lg font-bold text-slate-900">データがありません</h3>
-                      <p className="text-slate-500 mt-1">Firestoreに選手データを追加してください。</p>
+                      <div className="mx-auto h-12 w-12 text-slate-300 mb-4">
+                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-900">選手が見つかりません</h3>
+                      <p className="text-slate-500 mt-1">
+                        {isInitialState 
+                          ? '検索条件を入力して選手を探しましょう。'
+                          : '検索条件を変更して再度お試しください。'}
+                      </p>
                   </div>
               )}
          </div>
@@ -98,5 +103,3 @@ export default function HomePageClient({ initialPlayers }: HomePageClientProps) 
     </section>
   );
 }
-
-

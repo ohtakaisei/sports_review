@@ -77,6 +77,58 @@ export async function getPlayers(): Promise<Player[]> {
   })) as Player[];
 }
 
+// 人気選手を取得（reviewCountでソート、上位N名）
+export async function getPopularPlayers(limitCount: number = 12): Promise<Player[]> {
+  const playersCol = collection(db, 'players');
+  const q = query(
+    playersCol,
+    orderBy('reviewCount', 'desc'),
+    limit(limitCount)
+  );
+  
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((doc) => ({
+    ...doc.data(),
+    playerId: doc.id,
+  })) as Player[];
+}
+
+// 検索用の選手取得（チーム・ポジションでフィルタリング）
+export async function searchPlayers(filters: {
+  team?: string;
+  position?: string;
+}): Promise<Player[]> {
+  const playersCol = collection(db, 'players');
+  
+  // クエリを構築
+  const conditions: any[] = [];
+  
+  if (filters.team && filters.team !== 'all') {
+    conditions.push(where('team', '==', filters.team));
+  }
+  
+  if (filters.position && filters.position !== 'all') {
+    conditions.push(where('position', '==', filters.position));
+  }
+  
+  // 条件がある場合のみクエリを実行
+  if (conditions.length > 0) {
+    const q = query(playersCol, ...conditions);
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      ...doc.data(),
+      playerId: doc.id,
+    })) as Player[];
+  }
+  
+  // 条件がない場合は全選手を返す（検索時に使用）
+  const snapshot = await getDocs(playersCol);
+  return snapshot.docs.map((doc) => ({
+    ...doc.data(),
+    playerId: doc.id,
+  })) as Player[];
+}
+
 // 特定の選手を取得（保存済みの集計データを使用 - クォータ節約のためリアルタイム計算を削除）
 export async function getPlayer(playerId: string): Promise<Player | null> {
   const playerDoc = doc(db, 'players', playerId);

@@ -1,4 +1,4 @@
-import { getPlayers } from '@/lib/firebase/firestore';
+import { getPopularPlayers } from '@/lib/firebase/firestore';
 import HomePageClient from './HomePageClient';
 import Link from 'next/link';
 
@@ -6,8 +6,9 @@ import Link from 'next/link';
 export const revalidate = 300;
 
 export default async function HomePage() {
-  // サーバー側でデータを取得（ISRでキャッシュされる）
-  const playersRaw = await getPlayers();
+  // サーバー側で人気選手のみ取得（ISRでキャッシュされる）
+  // レビュー数が多い上位12名のみを取得して読み取り数を削減
+  const playersRaw = await getPopularPlayers(12);
   
   // FirestoreのTimestampをシリアライズ可能な形式に変換
   // Client ComponentにはプレーンなJSONオブジェクトのみ渡せる
