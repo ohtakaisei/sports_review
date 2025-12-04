@@ -39,12 +39,13 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="relative h-80 md:h-96 rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                {/* Decorative Elements representing Analytics */}
-                <div className="absolute inset-0 opacity-30 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.1)_25%,rgba(255,255,255,0.1)_50%,transparent_50%,transparent_75%,rgba(255,255,255,0.1)_75%,rgba(255,255,255,0.1)_100%)] bg-[length:20px_20px]"></div>
-                <div className="relative z-10 text-center">
-                    <span className="text-6xl md:text-8xl">📊</span>
-                    <p className="mt-4 text-white font-oswald text-xl tracking-widest">DATA x PASSION</p>
-                </div>
+                <Image
+                    src="/img/front-1.png"
+                    alt="DATA x PASSION"
+                    fill
+                    className="object-cover"
+                    priority
+                />
             </div>
           </div>
         </div>
@@ -121,18 +122,28 @@ export default function AboutPage() {
                             選手一覧を見る <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         </Link>
                     </div>
-                    <div className="order-1 md:order-2 bg-slate-800 rounded-2xl p-6 border border-slate-700 transform rotate-3 hover:rotate-0 transition-transform duration-500">
-                         <div className="aspect-video bg-slate-700 rounded-lg flex items-center justify-center">
-                            <span className="text-4xl">🔍</span>
+                    <div className="order-1 md:order-2 bg-slate-800 rounded-2xl p-6 border border-slate-700 transform rotate-3 hover:rotate-0 transition-transform duration-500 overflow-hidden">
+                         <div className="aspect-video relative rounded-lg">
+                            <Image
+                                src="/img/front-2.png"
+                                alt="選手を探す"
+                                fill
+                                className="object-cover"
+                            />
                          </div>
                     </div>
                 </div>
 
                 {/* Step 2 */}
                 <div className="grid md:grid-cols-2 gap-12 items-center">
-                    <div className="order-1 bg-slate-800 rounded-2xl p-6 border border-slate-700 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
-                         <div className="aspect-video bg-slate-700 rounded-lg flex items-center justify-center">
-                            <span className="text-4xl">📝</span>
+                    <div className="order-1 bg-slate-800 rounded-2xl p-6 border border-slate-700 transform -rotate-3 hover:rotate-0 transition-transform duration-500 overflow-hidden">
+                         <div className="aspect-video relative rounded-lg">
+                            <Image
+                                src="/img/front-3.png"
+                                alt="評価・レビューを投稿"
+                                fill
+                                className="object-cover"
+                            />
                          </div>
                     </div>
                     <div className="order-2">
@@ -156,9 +167,14 @@ export default function AboutPage() {
                             ファンの声が集まることで、より正確で深みのある選手像が浮かび上がります。
                         </p>
                     </div>
-                    <div className="order-1 md:order-2 bg-slate-800 rounded-2xl p-6 border border-slate-700 transform rotate-3 hover:rotate-0 transition-transform duration-500">
-                         <div className="aspect-video bg-slate-700 rounded-lg flex items-center justify-center">
-                            <span className="text-4xl">📈</span>
+                    <div className="order-1 md:order-2 bg-slate-800 rounded-2xl p-6 border border-slate-700 transform rotate-3 hover:rotate-0 transition-transform duration-500 overflow-hidden">
+                         <div className="aspect-video relative rounded-lg">
+                            <Image
+                                src="/img/front-4.png"
+                                alt="チャートの変化を楽しむ"
+                                fill
+                                className="object-cover"
+                            />
                          </div>
                     </div>
                 </div>
