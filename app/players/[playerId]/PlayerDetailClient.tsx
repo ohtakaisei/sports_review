@@ -292,31 +292,31 @@ export default function PlayerDetailClient({ initialPlayer, initialReviews, play
 
         {/* --- Analysis Section --- */}
         {Object.keys(player.summary || {}).length > 0 && (
-            <section className="py-16 container mx-auto max-w-7xl px-6">
-                <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 sm:p-12">
-                    <div className="grid lg:grid-cols-2 gap-12 items-center">
-                        <div>
-                            <h2 className="text-3xl font-bold text-slate-900 font-oswald mb-4">コミュニティ分析</h2>
-                            <p className="text-slate-600 leading-relaxed mb-8">
-                                コミュニティによる16項目の詳細評価チャートです。<br/>
+            <section className="py-8 sm:py-12 lg:py-16 container mx-auto max-w-7xl px-4 sm:px-6">
+                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-100 p-4 sm:p-6 lg:p-8 xl:p-12">
+                    <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 lg:gap-8 xl:gap-12">
+                        <div className="order-2 lg:order-1">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 font-oswald mb-3 sm:mb-4">コミュニティ分析</h2>
+                            <p className="text-sm sm:text-base text-slate-600 leading-relaxed mb-6 sm:mb-8">
+                                コミュニティによる16項目の詳細評価チャートです。<br className="hidden sm:block"/>
                                 多くのファンの視点から、選手の強みと特徴が可視化されています。
                             </p>
                             
                             {/* Highlighted Stats */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                    <div className="text-xs text-slate-500 font-bold uppercase mb-1">総合スコア</div>
-                                    <div className="text-3xl font-bold text-slate-900 font-oswald">{overallScore.toFixed(2)} / 6.0</div>
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                <div className="p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                    <div className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase mb-1">総合スコア</div>
+                                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 font-oswald">{overallScore.toFixed(2)} / 6.0</div>
                                 </div>
-                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                    <div className="text-xs text-slate-500 font-bold uppercase mb-1">総レビュー数</div>
-                                    <div className="text-3xl font-bold text-slate-900 font-oswald">{player.reviewCount}</div>
+                                <div className="p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                    <div className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase mb-1">総レビュー数</div>
+                                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 font-oswald">{player.reviewCount}</div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div className="flex justify-center">
-                             <div className="w-full max-w-md">
+                        <div className="order-1 lg:order-2 flex justify-center items-center overflow-hidden">
+                             <div className="w-full max-w-[280px] sm:max-w-sm lg:max-w-md aspect-square mx-auto">
                                 <RadarChart 
                                     labels={Object.keys(player.summary || {}).map(itemId => {
                                     const item = NBA_EVALUATION_ITEMS.find(item => item.itemId === itemId);

@@ -69,3 +69,4 @@ Vercelダッシュボードで以下を追加：
 - 値はJSONファイルからそのままコピーしてください（編集しない）
 - 環境変数は3つの環境すべて（Production, Preview, Development）に設定してください
 
+

@@ -48,15 +48,15 @@ export default function RadarChart({ labels, data, title }: RadarChartProps) {
         pointBorderColor: '#fff',
         pointHoverBackgroundColor: '#fff',
         pointHoverBorderColor: 'rgba(59, 130, 246, 1)',
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        pointRadius: isMobile ? 2 : 4,
+        pointHoverRadius: isMobile ? 4 : 6,
       },
     ],
   };
 
   const options: ChartOptions<'radar'> = {
     responsive: true,
-    maintainAspectRatio: true,
+    maintainAspectRatio: false,
     scales: {
       r: {
         angleLines: {
@@ -67,10 +67,11 @@ export default function RadarChart({ labels, data, title }: RadarChartProps) {
         },
         pointLabels: {
           font: {
-            size: isMobile ? 8 : 12,
+            size: isMobile ? 7 : 12,
             family: "'Yu Gothic', '游ゴシック', YuGothic, sans-serif",
           },
           color: '#374151',
+          padding: isMobile ? 8 : 12,
         },
         ticks: {
           display: true,
@@ -120,7 +121,7 @@ export default function RadarChart({ labels, data, title }: RadarChartProps) {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full min-h-[250px] sm:min-h-[300px] lg:min-h-[400px]">
       <Radar data={chartData} options={options} />
     </div>
   );

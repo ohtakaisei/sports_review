@@ -160,3 +160,4 @@ Settings → Environment Variables で以下を追加：
 
 どちらの方法で進めますか？選択した方法に応じて、次のステップを案内します！
 
+

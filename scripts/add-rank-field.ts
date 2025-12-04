@@ -107,3 +107,4 @@ addRankFieldToAllPlayers()
     process.exit(1);
   });
 
+
