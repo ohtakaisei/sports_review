@@ -44,8 +44,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function Page({ params }: PageProps) {
   const { playerId } = await params;
   // ページ表示用のデータ取得（メタデータとは別）
-  const player = await getPlayer(playerId);
-  const reviews = await getPlayerReviews(playerId);
+  const playerRaw = await getPlayer(playerId);
+  const reviewsRaw = await getPlayerReviews(playerId);
+
+  // FirestoreのTimestampをシリアライズ可能な形式に変換
+  // Client ComponentにはプレーンなJSONオブジェクトのみ渡せる
+  const player = playerRaw ? JSON.parse(JSON.stringify(playerRaw)) : null;
+  const reviews = JSON.parse(JSON.stringify(reviewsRaw));
 
   return (
     <PlayerDetailClient

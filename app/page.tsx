@@ -7,7 +7,11 @@ export const revalidate = 300;
 
 export default async function HomePage() {
   // サーバー側でデータを取得（ISRでキャッシュされる）
-  const players = await getPlayers();
+  const playersRaw = await getPlayers();
+  
+  // FirestoreのTimestampをシリアライズ可能な形式に変換
+  // Client ComponentにはプレーンなJSONオブジェクトのみ渡せる
+  const players = JSON.parse(JSON.stringify(playersRaw));
 
   return (
     <div className="min-h-screen bg-slate-50">
