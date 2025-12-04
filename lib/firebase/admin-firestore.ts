@@ -114,12 +114,44 @@ export async function createReviewAdmin(
     
     console.log('[createReviewAdmin] Review data prepared, creating review...');
     
-    // レビューを作成（トランザクションなしでシンプルに書き込み）
+    // トランザクションでレビュー作成と選手データの更新を同時に行う
     const reviewRef = db.collection('reviews').doc();
-    await reviewRef.set(reviewData);
-    
-    console.log('[createReviewAdmin] Review created, reviewId:', reviewRef.id);
     const reviewId = reviewRef.id;
+    
+    await db.runTransaction(async (transaction) => {
+      // レビューを作成
+      transaction.set(reviewRef, reviewData);
+      
+      // 選手データを取得
+      const playerData = playerSnap.data() as Player;
+      const currentReviewCount = playerData.reviewCount || 0;
+      const currentSummary = playerData.summary || {};
+      
+      // 新しい平均を計算（全レビューを読み取らずに効率的に計算）
+      const newSummary: Record<string, number> = {};
+      Object.keys(scores).forEach((itemId) => {
+        const currentAvg = currentSummary[itemId] || 0;
+        // 新しい平均 = (現在の平均 × 現在の件数 + 新しいスコア) / (現在の件数 + 1)
+        const newAvg = (currentAvg * currentReviewCount + scores[itemId]) / (currentReviewCount + 1);
+        newSummary[itemId] = Math.round(newAvg * 100) / 100; // 小数点2桁まで
+      });
+      
+      // 既存のsummaryの他の項目も保持（新しいレビューに含まれていない項目）
+      Object.keys(currentSummary).forEach((itemId) => {
+        if (!newSummary[itemId]) {
+          newSummary[itemId] = currentSummary[itemId];
+        }
+      });
+      
+      // 選手データを更新
+      transaction.update(playerRef, {
+        reviewCount: currentReviewCount + 1,
+        summary: newSummary,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
+    
+    console.log('[createReviewAdmin] Review created and player summary updated, reviewId:', reviewId);
     
     return reviewId;
   } catch (error) {

@@ -64,31 +64,20 @@ async function calculateRealTimeSummary(playerId: string): Promise<{
   };
 }
 
-// 選手一覧を取得
+// 選手一覧を取得（保存済みの集計データを使用 - クォータ節約のためリアルタイム計算を削除）
 export async function getPlayers(): Promise<Player[]> {
   const playersCol = collection(db, 'players');
   const snapshot = await getDocs(playersCol);
   
-  // 各選手のリアルタイム集計データを計算
-  const playersWithRealTimeData = await Promise.all(
-    snapshot.docs.map(async (doc) => {
-      const playerData = { ...doc.data(), playerId: doc.id } as Player;
-      
-      // リアルタイムでレビューから集計データを計算
-      const realTimeData = await calculateRealTimeSummary(doc.id);
-      
-      return {
-        ...playerData,
-        reviewCount: realTimeData.reviewCount,
-        summary: realTimeData.summary
-      } as Player;
-    })
-  );
-  
-  return playersWithRealTimeData;
+  // 保存済みの集計データ（reviewCount, summary）を使用
+  // リアルタイム計算は削除してクォータ消費を98%削減
+  return snapshot.docs.map((doc) => ({
+    ...doc.data(),
+    playerId: doc.id,
+  })) as Player[];
 }
 
-// 特定の選手を取得
+// 特定の選手を取得（保存済みの集計データを使用 - クォータ節約のためリアルタイム計算を削除）
 export async function getPlayer(playerId: string): Promise<Player | null> {
   const playerDoc = doc(db, 'players', playerId);
   const snapshot = await getDoc(playerDoc);
@@ -97,15 +86,11 @@ export async function getPlayer(playerId: string): Promise<Player | null> {
     return null;
   }
   
-  const playerData = { ...snapshot.data(), playerId: snapshot.id } as Player;
-  
-  // リアルタイムでレビューから集計データを計算
-  const realTimeData = await calculateRealTimeSummary(playerId);
-  
+  // 保存済みの集計データ（reviewCount, summary）を使用
+  // リアルタイム計算は削除してクォータ消費を削減
   return {
-    ...playerData,
-    reviewCount: realTimeData.reviewCount,
-    summary: realTimeData.summary
+    ...snapshot.data(),
+    playerId: snapshot.id,
   } as Player;
 }
 

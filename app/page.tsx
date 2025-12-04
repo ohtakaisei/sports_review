@@ -1,51 +1,13 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import { getPlayers } from '@/lib/firebase/firestore';
-import PlayerCard from '@/components/PlayerCard';
-import PlayerFilter from '@/components/PlayerFilter';
-import Pagination from '@/components/Pagination';
-import { Player } from '@/lib/types';
+import HomePageClient from './HomePageClient';
 import Link from 'next/link';
 
-const PLAYERS_PER_PAGE = 12;
+// ISR: 5分間キャッシュ（クォータ節約のため）
+export const revalidate = 300;
 
-export default function HomePage() {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      try {
-        const data = await getPlayers();
-        setPlayers(data);
-        setFilteredPlayers(data);
-      } catch (error) {
-        console.error('選手データの取得に失敗しました:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPlayers();
-  }, []);
-
-  const handleFilterChange = (filtered: Player[]) => {
-    setFilteredPlayers(filtered);
-    setCurrentPage(1);
-  };
-
-  const totalPages = Math.ceil(filteredPlayers.length / PLAYERS_PER_PAGE);
-  const startIndex = (currentPage - 1) * PLAYERS_PER_PAGE;
-  const endIndex = startIndex + PLAYERS_PER_PAGE;
-  const currentPlayers = filteredPlayers.slice(startIndex, endIndex);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+export default async function HomePage() {
+  // サーバー側でデータを取得（ISRでキャッシュされる）
+  const players = await getPlayers();
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -95,74 +57,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Player List Section */}
-      <section id="roster" className="py-20 -mt-10 relative z-10">
-        <div className="container mx-auto max-w-7xl px-6 lg:px-8">
-           {/* Search/Filter Container - Floating Card Style */}
-           <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 mb-12">
-                <div className="mb-8 text-center sm:text-left sm:flex sm:items-end sm:justify-between">
-                    <div>
-                        <h2 className="text-3xl font-bold text-slate-900 font-oswald uppercase tracking-wide">ROSTER</h2>
-                        <p className="text-slate-500 mt-2 text-sm">NBA選手のスタッツ、評価、コミュニティレビューを探索しましょう。</p>
-                    </div>
-                     {filteredPlayers.length > 0 && (
-                      <div className="mt-4 sm:mt-0 text-sm font-medium text-slate-500 bg-slate-50 px-4 py-2 rounded-lg">
-                        <span className="text-slate-900 font-bold">{filteredPlayers.length}</span> 名の選手を表示中
-                      </div>
-                    )}
-                </div>
-
-                {loading ? (
-                    <div className="flex justify-center py-12">
-                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-orange-600"></div>
-                    </div>
-                ) : players.length > 0 ? (
-                    <>
-                    <PlayerFilter
-                        players={players}
-                        onFilterChange={handleFilterChange}
-                    />
-                    
-                    {/* Spacer */}
-                    <div className="h-8"></div>
-
-                    {filteredPlayers.length > 0 ? (
-                        <>
-                        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {currentPlayers.map((player) => (
-                            <PlayerCard key={player.playerId} player={player} />
-                            ))}
-                        </div>
-                        
-                        {totalPages > 1 && (
-                            <div className="mt-12 flex justify-center">
-                            <Pagination
-                                currentPage={currentPage}
-                                totalPages={totalPages}
-                                onPageChange={handlePageChange}
-                            />
-                            </div>
-                        )}
-                        </>
-                    ) : (
-                        <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-16 text-center">
-                            <div className="mx-auto h-12 w-12 text-slate-300 mb-4">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-900">選手が見つかりません</h3>
-                            <p className="text-slate-500 mt-1">検索条件を変更して再度お試しください。</p>
-                        </div>
-                    )}
-                    </>
-                ) : (
-                    <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-16 text-center">
-                        <h3 className="text-lg font-bold text-slate-900">データがありません</h3>
-                        <p className="text-slate-500 mt-1">Firestoreに選手データを追加してください。</p>
-                    </div>
-                )}
-           </div>
-        </div>
-      </section>
+      {/* Player List Section - Client Component */}
+      <HomePageClient initialPlayers={players} />
 
       {/* About Teaser Section */}
       <section className="bg-white py-24 border-t border-slate-100">
