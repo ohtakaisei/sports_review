@@ -273,8 +273,42 @@ export async function getGame(gameId: string): Promise<Game | null> {
   } as Game;
 }
 
-// 試合を作成
-export async function createGame(gameData: Omit<Game, 'gameId' | 'createdAt'>): Promise<string> {
+// 試合が既に存在するかチェック（重複防止）
+export async function checkGameExists(
+  date: string,
+  homeTeam: string,
+  awayTeam: string
+): Promise<boolean> {
+  const gamesCol = collection(db, 'games');
+  const q = query(
+    gamesCol,
+    where('date', '==', date),
+    where('homeTeam', '==', homeTeam),
+    where('awayTeam', '==', awayTeam)
+  );
+  
+  const snapshot = await getDocs(q);
+  return !snapshot.empty;
+}
+
+// 試合を作成（重複チェック付き）
+export async function createGame(
+  gameData: Omit<Game, 'gameId' | 'createdAt'>,
+  skipDuplicateCheck: boolean = false
+): Promise<string> {
+  // 重複チェック
+  if (!skipDuplicateCheck) {
+    const exists = await checkGameExists(
+      gameData.date,
+      gameData.homeTeam,
+      gameData.awayTeam
+    );
+    
+    if (exists) {
+      throw new Error('この試合は既に登録されています');
+    }
+  }
+  
   const gamesCol = collection(db, 'games');
   const gameRef = doc(gamesCol);
   

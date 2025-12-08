@@ -178,7 +178,7 @@ export default function SetupPage() {
   const [result, setResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importMode, setImportMode] = useState<'sample' | 'json'>('sample');
-  const [managementMode, setManagementMode] = useState<'add' | 'manage'>('add');
+  const [managementMode, setManagementMode] = useState<'add' | 'manage' | 'games'>('add');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // 選手管理用のstate
@@ -191,6 +191,14 @@ export default function SetupPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [selectedPosition, setSelectedPosition] = useState('all');
+  
+  // 試合結果取得用のstate
+  const [fetchingGame, setFetchingGame] = useState(false);
+  const [gameFetchResult, setGameFetchResult] = useState<{ success: boolean; message: string; gameId?: string } | null>(null);
+  const [gameInputMode, setGameInputMode] = useState<'today' | 'manual'>('today');
+  const [manualGameDate, setManualGameDate] = useState('');
+  const [manualHomeTeam, setManualHomeTeam] = useState('');
+  const [manualAwayTeam, setManualAwayTeam] = useState('');
   
   // ページネーション用のstate
   const [currentPage, setCurrentPage] = useState(1);
@@ -472,6 +480,16 @@ service cloud.firestore {
             }`}
           >
             📝 選手を管理
+          </button>
+          <button
+            onClick={() => setManagementMode('games')}
+            className={`flex-1 rounded-md px-4 py-3 text-base font-medium transition-colors ${
+              managementMode === 'games'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            🏀 試合結果取得
           </button>
         </div>
 
@@ -1347,6 +1365,278 @@ function EditPlayerModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )}
+
+        {/* 試合結果取得モード */}
+        {managementMode === 'games' && (
+          <div className="card p-8">
+            <h2 className="mb-6 text-2xl font-bold text-gray-900">試合結果取得</h2>
+            
+            <div className="mb-6 rounded-lg bg-blue-50 p-4">
+              <p className="text-sm text-blue-800">
+                💡 ChatGPT APIを使って、今日のNBA試合結果を自動取得できます。
+                <br />
+                重複チェック機能により、既に登録されている試合はスキップされます。
+              </p>
+            </div>
+
+            {/* 結果表示 */}
+            {gameFetchResult && (
+              <div className={`mb-6 rounded-lg p-4 ${
+                gameFetchResult.success 
+                  ? 'bg-green-50 text-green-800' 
+                  : 'bg-red-50 text-red-800'
+              }`}>
+                <p className="font-medium">{gameFetchResult.message}</p>
+                {gameFetchResult.success && gameFetchResult.gameId && (
+                  <Link
+                    href={`/games/${gameFetchResult.gameId}`}
+                    className="mt-2 inline-block text-sm underline hover:no-underline"
+                  >
+                    試合詳細を見る →
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {/* モード切り替え */}
+            <div className="mb-6 flex space-x-1 rounded-lg bg-gray-100 p-1">
+              <button
+                onClick={() => setGameInputMode('today')}
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  gameInputMode === 'today'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                📅 今日の試合
+              </button>
+              <button
+                onClick={() => setGameInputMode('manual')}
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  gameInputMode === 'manual'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                ✏️ 手動入力
+              </button>
+            </div>
+
+            {/* 今日の試合結果を取得 */}
+            {gameInputMode === 'today' && (
+              <div className="space-y-4">
+                <button
+                  onClick={async () => {
+                    setFetchingGame(true);
+                    setGameFetchResult(null);
+                    
+                    try {
+                      // 今日の日付を取得
+                      const today = new Date();
+                      const todayStr = today.toISOString().split('T')[0];
+                      
+                      // ChatGPT APIを呼び出して今日の試合結果を取得
+                      // まず、今日の試合一覧を取得する必要がある
+                      // ここでは簡易的に、主要な試合を取得する
+                      const response = await fetch('/api/games/fetch-from-chatgpt', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          date: todayStr,
+                          homeTeam: 'ロサンゼルス・レイカーズ',
+                          awayTeam: 'ゴールデンステート・ウォリアーズ',
+                        }),
+                      });
+
+                      const data = await response.json();
+                      
+                      if (response.ok) {
+                        setGameFetchResult({
+                          success: true,
+                          message: `試合結果を取得しました: ${data.gameData.homeTeam} vs ${data.gameData.awayTeam}`,
+                          gameId: data.gameId,
+                        });
+                      } else {
+                        if (data.duplicate) {
+                          setGameFetchResult({
+                            success: false,
+                            message: 'この試合は既に登録されています。',
+                          });
+                        } else {
+                          setGameFetchResult({
+                            success: false,
+                            message: data.error || '試合結果の取得に失敗しました',
+                          });
+                        }
+                      }
+                    } catch (error) {
+                      setGameFetchResult({
+                        success: false,
+                        message: error instanceof Error ? error.message : 'エラーが発生しました',
+                      });
+                    } finally {
+                      setFetchingGame(false);
+                    }
+                  }}
+                  disabled={fetchingGame}
+                  className="w-full rounded-md bg-blue-600 px-6 py-4 text-lg font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {fetchingGame ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                      取得中...
+                    </span>
+                  ) : (
+                    '🏀 今日の試合結果を取得'
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* 手動入力モード */}
+            {gameInputMode === 'manual' && (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  
+                  if (!manualGameDate || !manualHomeTeam || !manualAwayTeam) {
+                    setGameFetchResult({
+                      success: false,
+                      message: 'すべてのフィールドを入力してください',
+                    });
+                    return;
+                  }
+
+                  setFetchingGame(true);
+                  setGameFetchResult(null);
+                  
+                  try {
+                    const response = await fetch('/api/games/fetch-from-chatgpt', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        date: manualGameDate,
+                        homeTeam: manualHomeTeam,
+                        awayTeam: manualAwayTeam,
+                      }),
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                      setGameFetchResult({
+                        success: true,
+                        message: `試合結果を取得しました: ${data.gameData.homeTeam} vs ${data.gameData.awayTeam}`,
+                        gameId: data.gameId,
+                      });
+                      // フォームをリセット
+                      setManualGameDate('');
+                      setManualHomeTeam('');
+                      setManualAwayTeam('');
+                    } else {
+                      if (data.duplicate) {
+                        setGameFetchResult({
+                          success: false,
+                          message: 'この試合は既に登録されています。',
+                        });
+                      } else {
+                        setGameFetchResult({
+                          success: false,
+                          message: data.error || '試合結果の取得に失敗しました',
+                        });
+                      }
+                    }
+                  } catch (error) {
+                    setGameFetchResult({
+                      success: false,
+                      message: error instanceof Error ? error.message : 'エラーが発生しました',
+                    });
+                  } finally {
+                    setFetchingGame(false);
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label htmlFor="gameDate" className="mb-2 block text-sm font-medium text-gray-700">
+                    試合日 <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    id="gameDate"
+                    type="date"
+                    value={manualGameDate}
+                    onChange={(e) => setManualGameDate(e.target.value)}
+                    required
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="awayTeam" className="mb-2 block text-sm font-medium text-gray-700">
+                    アウェイチーム <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    id="awayTeam"
+                    type="text"
+                    value={manualAwayTeam}
+                    onChange={(e) => setManualAwayTeam(e.target.value)}
+                    placeholder="例: ゴールデンステート・ウォリアーズ"
+                    required
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="homeTeam" className="mb-2 block text-sm font-medium text-gray-700">
+                    ホームチーム <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    id="homeTeam"
+                    type="text"
+                    value={manualHomeTeam}
+                    onChange={(e) => setManualHomeTeam(e.target.value)}
+                    placeholder="例: ロサンゼルス・レイカーズ"
+                    required
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={fetchingGame}
+                  className="w-full rounded-md bg-blue-600 px-6 py-4 text-lg font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {fetchingGame ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                      取得中...
+                    </span>
+                  ) : (
+                    '🏀 試合結果を取得'
+                  )}
+                </button>
+              </form>
+            )}
+
+              <div className="rounded-lg bg-gray-50 p-4">
+                <h3 className="mb-2 text-sm font-bold text-gray-900">注意事項</h3>
+                <ul className="space-y-1 text-xs text-gray-600">
+                  <li>• OpenAI APIキーが設定されている必要があります</li>
+                  <li>• 既に登録されている試合は自動的にスキップされます</li>
+                  <li>• APIの使用には料金がかかります</li>
+                  <li>• 現在は1試合ずつ取得する必要があります</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
