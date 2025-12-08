@@ -170,7 +170,11 @@ export default function PlayerDetailClient({ initialPlayer, initialReviews, play
 
                 {/* Middle Column: Stats & Details */}
                 <div className="flex-1 w-full text-center lg:text-left">
-                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-4">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-oswald mb-4 tracking-wide text-white leading-tight">
+                        {player.name || '選手名不明'}
+                    </h1>
+                    
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-8">
                         <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-sm font-bold text-slate-300">
                             {player.team}
                         </span>
@@ -181,10 +185,6 @@ export default function PlayerDetailClient({ initialPlayer, initialReviews, play
                             #{player.number}
                         </span>
                     </div>
-
-                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-oswald mb-8 tracking-wide">
-                        {player.name}
-                    </h1>
 
                     {/* Player Details Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-10 text-left bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50">
