@@ -107,3 +107,56 @@ export const CATEGORY_LABELS: Record<EvaluationCategory, string> = {
   physical_other: 'フィジカル/その他',
 };
 
+// 試合結果の選手スタッツ
+export interface GamePlayerStats {
+  playerId: string;
+  name: string;
+  team: 'home' | 'away';
+  pts: number; // 得点
+  ast: number; // アシスト
+  reb: number; // リバウンド
+  fg: number; // フィールドゴール成功率
+  fga?: number; // フィールドゴール試投数
+  fgm?: number; // フィールドゴール成功数
+  threePt?: number; // 3ポイント成功数
+  threePtA?: number; // 3ポイント試投数
+  ft?: number; // フリースロー成功数
+  fta?: number; // フリースロー試投数
+  stl?: number; // スティール
+  blk?: number; // ブロック
+  tov?: number; // ターンオーバー
+  pf?: number; // パーソナルファウル
+  plusMinus?: number; // +/- スコア
+  minutes?: string; // 出場時間（例: "35:23"）
+}
+
+// 試合結果
+export interface Game {
+  gameId: string;
+  date: string; // YYYY-MM-DD形式
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  status: 'finished' | 'scheduled' | 'live';
+  players: GamePlayerStats[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// 試合レビュー（通常のレビューとは別のコレクション）
+export interface GameReview {
+  reviewId: string;
+  gameId: string;
+  playerId: string;
+  playerName: string; // 選手名（検索用）
+  comment: string;
+  createdAt: string;
+  status: 'published' | 'pending' | 'rejected';
+  overallScore: number;
+  overallGrade: ScoreGrade; // S~F
+  scores: Record<string, number>; // itemId: スコア
+  userName?: string; // ユーザー名（任意）
+  parentReviewId?: string; // スレッド用：親レビューのID
+}
+

@@ -24,6 +24,12 @@ export default function Header() {
             選手一覧
           </Link>
           <Link
+            href="/games"
+            className="text-sm font-bold text-slate-600 transition-colors hover:text-orange-600 relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[2px] after:bg-orange-600 after:transition-all hover:after:w-full"
+          >
+            試合結果
+          </Link>
+          <Link
             href="/about"
             className="text-sm font-bold text-slate-600 transition-colors hover:text-orange-600 relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[2px] after:bg-orange-600 after:transition-all hover:after:w-full"
           >

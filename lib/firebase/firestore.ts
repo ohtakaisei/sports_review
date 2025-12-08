@@ -9,9 +9,10 @@ import {
   limit,
   Timestamp,
   runTransaction,
+  setDoc,
 } from 'firebase/firestore';
 import { db } from './config';
-import { Player, Review } from '@/lib/types';
+import { Player, Review, Game, GameReview } from '@/lib/types';
 
 // レビューからリアルタイムで集計データを計算
 async function calculateRealTimeSummary(playerId: string): Promise<{
@@ -223,5 +224,139 @@ export async function createReview(
   });
   
   return reviewId;
+}
+
+// ==================== 試合関連の関数 ====================
+
+// 試合一覧を取得（日付順、新しい順）
+export async function getGames(limitCount: number = 50): Promise<Game[]> {
+  const gamesCol = collection(db, 'games');
+  // インデックス作成中は、orderByを一時的に削除
+  const q = query(
+    gamesCol,
+    // orderBy('date', 'desc'), // 一時的にコメントアウト
+    limit(limitCount)
+  );
+  
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        gameId: doc.id,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString(),
+      } as Game;
+    })
+    .sort((a, b) => {
+      // クライアントサイドでソート
+      return b.date.localeCompare(a.date);
+    });
+}
+
+// 特定の試合を取得
+export async function getGame(gameId: string): Promise<Game | null> {
+  const gameDoc = doc(db, 'games', gameId);
+  const snapshot = await getDoc(gameDoc);
+  
+  if (!snapshot.exists()) {
+    return null;
+  }
+  
+  const data = snapshot.data();
+  return {
+    ...data,
+    gameId: snapshot.id,
+    createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    updatedAt: data.updatedAt?.toDate?.()?.toISOString(),
+  } as Game;
+}
+
+// 試合を作成
+export async function createGame(gameData: Omit<Game, 'gameId' | 'createdAt'>): Promise<string> {
+  const gamesCol = collection(db, 'games');
+  const gameRef = doc(gamesCol);
+  
+  await setDoc(gameRef, {
+    ...gameData,
+    createdAt: Timestamp.now(),
+  });
+  
+  return gameRef.id;
+}
+
+// 試合のレビューを取得
+export async function getGameReviews(
+  gameId: string,
+  playerId?: string,
+  limitCount: number = 100
+): Promise<GameReview[]> {
+  const reviewsCol = collection(db, 'gameReviews');
+  
+  const conditions = [
+    where('gameId', '==', gameId),
+    where('status', '==', 'published'),
+  ];
+  
+  if (playerId) {
+    conditions.push(where('playerId', '==', playerId));
+  }
+  
+  const q = query(
+    reviewsCol,
+    ...conditions,
+    // orderBy('createdAt', 'desc'), // 一時的にコメントアウト
+    limit(limitCount)
+  );
+  
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        reviewId: doc.id,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+      } as GameReview;
+    })
+    .sort((a, b) => {
+      // クライアントサイドでソート（新しい順）
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+}
+
+// 試合レビューを投稿
+export async function createGameReview(
+  gameId: string,
+  playerId: string,
+  playerName: string,
+  comment: string,
+  scores: Record<string, number>,
+  overallScore: number,
+  overallGrade: string,
+  userName?: string,
+  parentReviewId?: string
+): Promise<string> {
+  const { numberToGrade } = await import('@/lib/utils');
+  
+  const reviewData = {
+    gameId,
+    playerId,
+    playerName,
+    comment,
+    scores,
+    overallScore,
+    overallGrade: overallGrade as any,
+    status: 'published',
+    createdAt: Timestamp.now(),
+    ...(userName && { userName }),
+    ...(parentReviewId && { parentReviewId }),
+  };
+  
+  const reviewRef = doc(collection(db, 'gameReviews'));
+  await setDoc(reviewRef, reviewData);
+  
+  return reviewRef.id;
 }
 
