@@ -1,6 +1,6 @@
 import { getAdminFirestore } from './admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { Player, Review, ScoreGrade } from '@/lib/types';
+import { Player, Review, ScoreGrade, Game, GamePlayerStats } from '@/lib/types';
 
 // 数値からランク（S~F）を計算
 function calculateRank(score: number): ScoreGrade {
@@ -274,4 +274,151 @@ export async function checkPlayerExists(playerId: string): Promise<boolean> {
   const playerSnap = await playerRef.get();
   
   return playerSnap.exists;
+}
+
+/**
+ * 選手を作成（Admin SDK使用）
+ */
+export async function createPlayerAdmin(playerData: Player): Promise<void> {
+  const db = getAdminFirestore();
+  const playerRef = db.collection('players').doc(playerData.playerId);
+  
+  // 既に存在するかチェック
+  const snapshot = await playerRef.get();
+  if (snapshot.exists) {
+    throw new Error('この選手IDは既に登録されています');
+  }
+  
+  await playerRef.set({
+    ...playerData,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+}
+
+/**
+ * 選手を更新（Admin SDK使用）
+ */
+export async function updatePlayerAdmin(playerData: Player): Promise<void> {
+  const db = getAdminFirestore();
+  const playerRef = db.collection('players').doc(playerData.playerId);
+  
+  // 既に存在するかチェック
+  const snapshot = await playerRef.get();
+  if (!snapshot.exists) {
+    throw new Error('この選手は存在しません');
+  }
+  
+  await playerRef.update({
+    ...playerData,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+}
+
+/**
+ * 選手を削除（Admin SDK使用）
+ */
+export async function deletePlayerAdmin(playerId: string): Promise<void> {
+  const db = getAdminFirestore();
+  const playerRef = db.collection('players').doc(playerId);
+  
+  // 既に存在するかチェック
+  const snapshot = await playerRef.get();
+  if (!snapshot.exists) {
+    throw new Error('この選手は存在しません');
+  }
+  
+  await playerRef.delete();
+}
+
+/**
+ * 試合が既に存在するかチェック（Admin SDK使用）
+ */
+export async function checkGameExistsAdmin(
+  date: string,
+  homeTeam: string,
+  awayTeam: string
+): Promise<boolean> {
+  const db = getAdminFirestore();
+  const gamesCol = db.collection('games');
+  const q = gamesCol
+    .where('date', '==', date)
+    .where('homeTeam', '==', homeTeam)
+    .where('awayTeam', '==', awayTeam);
+  
+  const snapshot = await q.get();
+  return !snapshot.empty;
+}
+
+/**
+ * 試合を作成（Admin SDK使用）
+ */
+export async function createGameAdmin(
+  gameData: Omit<Game, 'gameId' | 'createdAt'>,
+  skipDuplicateCheck: boolean = false
+): Promise<string> {
+  const db = getAdminFirestore();
+  
+  // 重複チェック
+  if (!skipDuplicateCheck) {
+    const exists = await checkGameExistsAdmin(
+      gameData.date,
+      gameData.homeTeam,
+      gameData.awayTeam
+    );
+    
+    if (exists) {
+      throw new Error('この試合は既に登録されています');
+    }
+  }
+  
+  const gameRef = db.collection('games').doc();
+  await gameRef.set({
+    ...gameData,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  
+  return gameRef.id;
+}
+
+/**
+ * 試合レビューを作成（Admin SDK使用）
+ */
+export async function createGameReviewAdmin(
+  gameId: string,
+  playerId: string,
+  playerName: string,
+  comment: string,
+  scores: Record<string, number>,
+  overallScore: number,
+  overallGrade: string,
+  userName?: string,
+  parentReviewId?: string
+): Promise<string> {
+  const db = getAdminFirestore();
+  
+  const reviewData: any = {
+    gameId,
+    playerId,
+    playerName,
+    comment,
+    scores,
+    overallScore,
+    overallGrade,
+    status: 'published',
+    createdAt: FieldValue.serverTimestamp(),
+  };
+  
+  if (userName) {
+    reviewData.userName = userName;
+  }
+  
+  if (parentReviewId) {
+    reviewData.parentReviewId = parentReviewId;
+  }
+  
+  const reviewRef = db.collection('gameReviews').doc();
+  await reviewRef.set(reviewData);
+  
+  return reviewRef.id;
 }

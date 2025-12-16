@@ -92,3 +92,5 @@ npm run dev
 - OpenAI APIの使用には料金がかかります（gpt-4o-miniは比較的安価）
 - APIキーが漏洩した場合は、すぐにOpenAI Platformでキーを無効化してください
 
+
+

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createGameReview } from '@/lib/firebase/firestore';
-import { numberToGrade } from '@/lib/utils';
+import { createGameReviewAdmin } from '@/lib/firebase/admin-firestore';
+import { SCORE_MAP, ScoreGrade } from '@/lib/types';
 
 /**
- * 試合レビューを投稿するAPI
+ * 試合レビューを投稿するAPI（Admin SDK使用）
  */
 export async function POST(
   request: NextRequest,
@@ -14,35 +14,27 @@ export async function POST(
     const { gameId } = params;
 
     // バリデーション
-    if (!body.playerId || !body.playerName || !body.comment || !body.scores) {
+    if (!body.playerId || !body.playerName || !body.comment || body.overallGrade === undefined) {
       return NextResponse.json(
-        { error: '必須フィールドが不足しています' },
+        { error: '必須フィールドが不足しています（playerId, playerName, comment, overallGrade）' },
         { status: 400 }
       );
     }
 
-    // スコアを数値に変換
-    const numericScores: Record<string, number> = {};
-    Object.entries(body.scores).forEach(([itemId, grade]) => {
-      numericScores[itemId] = typeof grade === 'string' 
-        ? (grade === 'S' ? 6 : grade === 'A' ? 5 : grade === 'B' ? 4 : grade === 'C' ? 3 : grade === 'D' ? 2 : grade === 'E' ? 1 : 0)
-        : Number(grade);
-    });
+    // 総合評価からスコアを計算
+    const overallGrade = body.overallGrade as ScoreGrade;
+    const overallScore = SCORE_MAP[overallGrade];
 
-    // 総合評価を計算
-    const scores = Object.values(numericScores);
-    const overallScore = scores.length > 0
-      ? scores.reduce((sum, score) => sum + score, 0) / scores.length
-      : 0;
-    const overallGrade = numberToGrade(overallScore);
+    // スコアは空のオブジェクト（試合評価では総合評価のみ）
+    const scores: Record<string, number> = {};
 
-    // レビューを作成
-    const reviewId = await createGameReview(
+    // レビューを作成（Admin SDK使用）
+    const reviewId = await createGameReviewAdmin(
       gameId,
       body.playerId,
       body.playerName,
       body.comment,
-      numericScores,
+      scores,
       overallScore,
       overallGrade,
       body.userName,

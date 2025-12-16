@@ -139,7 +139,7 @@ export interface Game {
   homeScore: number;
   awayScore: number;
   status: 'finished' | 'scheduled' | 'live';
-  players: GamePlayerStats[];
+  players?: GamePlayerStats[]; // オプショナル：手動入力時は不要
   createdAt: string;
   updatedAt?: string;
 }

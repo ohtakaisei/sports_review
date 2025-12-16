@@ -114,6 +114,18 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    
+    // gamesコレクション: 読み取りは全員可能、書き込みはサーバーのみ
+    match /games/{gameId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // gameReviewsコレクション: 読み取りは全員可能、書き込みはサーバーのみ
+    match /gameReviews/{reviewId} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }
 ```

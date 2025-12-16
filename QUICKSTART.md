@@ -77,6 +77,14 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    match /games/{gameId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /gameReviews/{reviewId} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }
 ```

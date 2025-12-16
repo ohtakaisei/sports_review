@@ -53,6 +53,14 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false; // API Routes経由のみ
     }
+    match /games/{gameId} {
+      allow read: if true;
+      allow write: if false; // API Routes経由のみ
+    }
+    match /gameReviews/{reviewId} {
+      allow read: if true;
+      allow write: if false; // API Routes経由のみ
+    }
   }
 }
 ```
