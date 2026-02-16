@@ -24,6 +24,7 @@ export default function PlayerDetailClient({ initialPlayer, initialReviews, play
   const [loading, setLoading] = useState(!initialPlayer); // Initial player provided means not loading
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [statsExpanded, setStatsExpanded] = useState(false);
 
   // If we didn't get initial data (e.g. error on server), we might want to fetch it client side,
   // but for now we assume server side fetching works or returns null if not found.
@@ -256,33 +257,150 @@ export default function PlayerDetailClient({ initialPlayer, initialReviews, play
                 {player.stats && (
                     <div className="w-full lg:w-64 flex-shrink-0">
                         <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
-                             <div className="bg-slate-950 px-4 py-3 border-b border-slate-800">
+                            <div className="bg-slate-950 px-4 py-3 border-b border-slate-800">
                                 <h3 className="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">
                                     シーズンスタッツ ({player.stats.season})
                                 </h3>
                             </div>
-                            <div className="p-6 space-y-6">
+
+                            {/* 主要スタッツ（常に表示） */}
+                            <div className="p-6 space-y-5">
                                 <div className="text-center">
                                     <div className="text-4xl font-bold font-oswald text-white">{player.stats.pts}</div>
-                                    <div className="text-xs font-bold text-slate-500 uppercase">PTS</div>
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">PTS</div>
+                                    <div className="text-[10px] text-slate-600">得点</div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-700">
-                                     <div className="text-center">
+                                    <div className="text-center">
                                         <div className="text-xl font-bold font-oswald text-white">{player.stats.reb}</div>
-                                        <div className="text-[10px] font-bold text-slate-500 uppercase">REB</div>
+                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">REB</div>
+                                        <div className="text-[10px] text-slate-600">リバウンド</div>
                                     </div>
-                                     <div className="text-center">
+                                    <div className="text-center">
                                         <div className="text-xl font-bold font-oswald text-white">{player.stats.ast}</div>
-                                        <div className="text-[10px] font-bold text-slate-500 uppercase">AST</div>
-                                    </div>
-                                </div>
-                                <div className="pt-4 border-t border-slate-700 text-center">
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-400">FG%</span>
-                                        <span className="font-bold text-white">{player.stats.fg}%</span>
+                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">AST</div>
+                                        <div className="text-[10px] text-slate-600">アシスト</div>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* 詳細スタッツ（折りたたみ） */}
+                            <div
+                                className="overflow-hidden transition-all duration-300 ease-in-out"
+                                style={{ maxHeight: statsExpanded ? '500px' : '0px' }}
+                            >
+                                <div className="px-6 pb-6 space-y-5">
+                                    {/* シューティング */}
+                                    {(player.stats.fg != null || player.stats.threePtPct != null || player.stats.ftPct != null) && (
+                                        <div className="pt-4 border-t border-slate-700">
+                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Shooting / シューティング</div>
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <div>
+                                                        <span className="text-sm font-medium text-slate-300">FG%</span>
+                                                        <span className="text-[10px] text-slate-600 ml-1.5">FG成功率</span>
+                                                    </div>
+                                                    <span className="text-sm font-bold font-oswald text-white">{player.stats.fg}%</span>
+                                                </div>
+                                                {player.stats.threePtPct != null && (
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <span className="text-sm font-medium text-slate-300">3PT%</span>
+                                                            <span className="text-[10px] text-slate-600 ml-1.5">3P成功率</span>
+                                                        </div>
+                                                        <span className="text-sm font-bold font-oswald text-white">{player.stats.threePtPct}%</span>
+                                                    </div>
+                                                )}
+                                                {player.stats.ftPct != null && (
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <span className="text-sm font-medium text-slate-300">FT%</span>
+                                                            <span className="text-[10px] text-slate-600 ml-1.5">FT成功率</span>
+                                                        </div>
+                                                        <span className="text-sm font-bold font-oswald text-white">{player.stats.ftPct}%</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* ディフェンス */}
+                                    {(player.stats.stl != null || player.stats.blk != null) && (
+                                        <div className="pt-4 border-t border-slate-700">
+                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Defense / ディフェンス</div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {player.stats.stl != null && (
+                                                    <div className="text-center">
+                                                        <div className="text-lg font-bold font-oswald text-white">{player.stats.stl}</div>
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase">STL</div>
+                                                        <div className="text-[10px] text-slate-600">スティール</div>
+                                                    </div>
+                                                )}
+                                                {player.stats.blk != null && (
+                                                    <div className="text-center">
+                                                        <div className="text-lg font-bold font-oswald text-white">{player.stats.blk}</div>
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase">BLK</div>
+                                                        <div className="text-[10px] text-slate-600">ブロック</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* その他 */}
+                                    {(player.stats.tov != null || player.stats.mpg != null || player.stats.gp != null) && (
+                                        <div className="pt-4 border-t border-slate-700">
+                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Other / その他</div>
+                                            <div className="space-y-2">
+                                                {player.stats.tov != null && (
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <span className="text-sm font-medium text-slate-300">TOV</span>
+                                                            <span className="text-[10px] text-slate-600 ml-1.5">ターンオーバー</span>
+                                                        </div>
+                                                        <span className="text-sm font-bold font-oswald text-white">{player.stats.tov}</span>
+                                                    </div>
+                                                )}
+                                                {player.stats.mpg != null && (
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <span className="text-sm font-medium text-slate-300">MPG</span>
+                                                            <span className="text-[10px] text-slate-600 ml-1.5">出場時間</span>
+                                                        </div>
+                                                        <span className="text-sm font-bold font-oswald text-white">{player.stats.mpg}</span>
+                                                    </div>
+                                                )}
+                                                {player.stats.gp != null && (
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <span className="text-sm font-medium text-slate-300">GP</span>
+                                                            <span className="text-[10px] text-slate-600 ml-1.5">出場試合数</span>
+                                                        </div>
+                                                        <span className="text-sm font-bold font-oswald text-white">{player.stats.gp}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 開閉ボタン */}
+                            <button
+                                onClick={() => setStatsExpanded(!statsExpanded)}
+                                className="w-full py-3 border-t border-slate-700 text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors flex items-center justify-center gap-1.5"
+                            >
+                                <svg
+                                    className={`w-3.5 h-3.5 transition-transform duration-300 ${statsExpanded ? 'rotate-180' : ''}`}
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                                {statsExpanded ? '閉じる' : '詳細スタッツを見る'}
+                            </button>
                         </div>
                     </div>
                 )}

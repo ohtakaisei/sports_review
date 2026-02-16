@@ -40,6 +40,8 @@ export async function POST(request: NextRequest) {
       contractAmount: body.contractAmount || null,
       contractYears: body.contractYears || null,
       shopUrl: body.shopUrl || null,
+      espnUrl: body.espnUrl || null,
+      contractUrl: body.contractUrl || null,
     };
 
     // Firestoreに保存（Admin SDK使用）
@@ -99,6 +101,8 @@ export async function PUT(request: NextRequest) {
       contractAmount: body.contractAmount || null,
       contractYears: body.contractYears || null,
       shopUrl: body.shopUrl || null,
+      espnUrl: body.espnUrl || null,
+      contractUrl: body.contractUrl || null,
     };
 
     // Firestoreに更新（Admin SDK使用）
@@ -154,6 +158,7 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
 
 
 

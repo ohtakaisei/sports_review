@@ -24,11 +24,18 @@ export interface EvaluationItem {
 
 // 選手のスタッツ情報
 export interface PlayerStats {
-  pts: number; // 得点
-  ast: number; // アシスト
-  reb: number; // リバウンド
-  fg: number; // フィールドゴール成功率
+  pts: number; // 平均得点
+  ast: number; // 平均アシスト
+  reb: number; // 平均リバウンド
+  fg: number; // フィールドゴール成功率 (%)
   season: string; // シーズン（例: "2024-25"）
+  stl?: number; // 平均スティール
+  blk?: number; // 平均ブロック
+  tov?: number; // 平均ターンオーバー
+  mpg?: number; // 平均出場時間 (分)
+  gp?: number; // 出場試合数
+  threePtPct?: number; // 3ポイント成功率 (%)
+  ftPct?: number; // フリースロー成功率 (%)
 }
 
 // 選手情報
@@ -55,6 +62,8 @@ export interface Player {
   contractAmount?: number; // 契約金額（年俸、ドル）
   contractYears?: number; // 契約年数
   shopUrl?: string; // グッズ購入URL（任意）
+  espnUrl?: string; // ESPN選手ページURL（AI更新で使用）
+  contractUrl?: string; // 契約情報ページURL（AI更新で使用、Spotrac等）
 }
 
 // レビュー
@@ -159,4 +168,3 @@ export interface GameReview {
   userName?: string; // ユーザー名（任意）
   parentReviewId?: string; // スレッド用：親レビューのID
 }
-

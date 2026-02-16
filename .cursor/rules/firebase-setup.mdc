@@ -1,0 +1,116 @@
+---
+description: Firebase設定、Admin SDK、環境変数、Firestoreセキュリティルールの設定ガイド
+globs:
+  - lib/firebase/**
+  - .env.local
+---
+
+# Firebase設定ガイド
+
+## 環境変数一覧
+
+### 必須: Firebaseクライアント設定
+
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
+
+取得方法: Firebase Console → プロジェクト設定 → 全般 → Webアプリ
+
+### 必須: Firebase Admin SDK
+
+```env
+FIREBASE_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour-Private-Key-Here\n-----END PRIVATE KEY-----\n"
+```
+
+**重要**: `.env.local`では必ずダブルクォートで囲む。`\n`は文字列のまま残す。
+
+### オプション: reCAPTCHA v3
+
+```env
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_site_key
+RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key
+```
+
+### オプション: Vercel KV (Redis)
+
+```env
+KV_URL=your_kv_url
+KV_REST_API_URL=your_kv_rest_api_url
+KV_REST_API_TOKEN=your_kv_rest_api_token
+KV_REST_API_READ_ONLY_TOKEN=your_kv_rest_api_read_only_token
+```
+
+## Firebase Admin SDK セットアップ
+
+### なぜAdmin SDKが必要か
+
+Firestoreのセキュリティルールで `allow write: if false` を設定しているため、クライアントSDKでは書き込み不可。Admin SDKはサーバー側（API Routes）で動作し、セキュリティルールをバイパスする。
+
+**フロー**:
+1. ユーザーがフォームを送信
+2. クライアント → API Routes (`/api/reviews` 等)
+3. API Routesでバリデーション + reCAPTCHA + レート制限チェック
+4. **Admin SDKでFirestoreに書き込み**（ルールをバイパス）
+5. 成功レスポンスを返す
+
+### サービスアカウントキーの取得
+
+1. [Firebase Console](https://console.firebase.google.com/) → プロジェクト設定
+2. 「サービスアカウント」タブ
+3. 「新しい秘密鍵の生成」→ JSONファイルをダウンロード
+4. JSONファイルから以下を抽出:
+   - `client_email` → `FIREBASE_CLIENT_EMAIL`
+   - `private_key` → `FIREBASE_PRIVATE_KEY`
+
+### よくあるエラー
+
+| エラー | 原因 | 解決策 |
+|---|---|---|
+| 環境変数が設定されていません | `.env.local`未設定 | ファイル確認・サーバー再起動 |
+| Invalid PEM formatted message | Private keyの形式不正 | ダブルクォートで囲む、`\n`をそのまま残す |
+| OAuth2 access token取得失敗 | Private key破損 | JSONファイルから再度コピー |
+
+## Firestoreセキュリティルール
+
+Firebase Console → Firestore Database → ルール に以下を設定:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /players/{playerId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /games/{gameId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /gameReviews/{reviewId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
+```
+
+- `allow write: if false` により、クライアントからの直接書き込みは禁止
+- 書き込みはすべてAPI Routes（Admin SDK）経由
+- ルール変更後「公開」をクリック（反映まで数秒）
+
+## セキュリティ注意事項
+
+- `.env.local` は絶対にGitにコミットしない（`.gitignore`に含まれていることを確認）
+- Vercelデプロイ時は Dashboard → Settings → Environment Variables で設定
+- Vercelでの`FIREBASE_PRIVATE_KEY`はダブルクォート**不要**（`deploy-guide.mdc`参照）

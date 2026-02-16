@@ -1,0 +1,173 @@
+---
+description: ESPNからAIを使って選手情報を自動更新する機能の設計・実装ルール
+globs:
+  - app/api/players/ai-update/**
+  - app/setup/**
+  - app/players/[playerId]/PlayerDetailClient.tsx
+  - lib/types/index.ts
+---
+
+# AI選手情報更新機能
+
+## 概要
+
+管理者ページ（`/setup`）から選手ごとに「AI更新」ボタンを押すと、ESPNサイトから最新情報を取得し、GPT-4o-miniで構造化データに変換してFirestoreを更新する機能。
+
+## 設計方針
+
+### 目的
+- 管理者が手動で選手情報を編集する手間を省く
+- ESPNを唯一の情報ソースとし、正確な事実ベースの情報のみを更新する
+- ボタン押下時のみAI APIを呼ぶため、コストを最小限に抑える
+- **変動するフィールドのみ更新**し、トークン使用量を最小化する
+
+### 更新対象フィールド
+
+#### 変動するフィールド（AI更新対象）
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `team` | `string` | 所属チーム（トレードで変動） |
+| `position` | `string` | ポジション（PG/SG/SF/PF/C） |
+| `number` | `number` | 背番号 |
+| `stats` | `PlayerStats` | シーズンスタッツ（毎試合変動） |
+| `contractAmount` | `number` | 契約金額（契約更新で変動） |
+| `contractYears` | `number` | 契約年数 |
+
+#### 不変のフィールド（AI更新対象外）
+- `height, weight, birthDate, country` — 身体情報・生年月日は変わらない
+- `draftYear, draftRound, draftPick` — ドラフト情報は変わらない
+- `playerId, name, sport` — 識別情報は変更不可
+- `imageUrl, shopUrl` — URL系はAI更新しない
+- `reviewCount, summary, rank` — レビューから自動計算されるフィールド
+
+### PlayerStats の項目
+
+```typescript
+interface PlayerStats {
+  // 基本（常に表示）
+  pts: number;    // 平均得点
+  ast: number;    // 平均アシスト
+  reb: number;    // 平均リバウンド
+  fg: number;     // FG成功率 (%)
+  season: string; // シーズン
+
+  // 拡張（詳細スタッツとして折りたたみ内に表示）
+  stl?: number;       // 平均スティール
+  blk?: number;       // 平均ブロック
+  tov?: number;       // 平均ターンオーバー
+  mpg?: number;       // 平均出場時間 (分)
+  gp?: number;        // 出場試合数
+  threePtPct?: number; // 3PT成功率 (%)
+  ftPct?: number;      // FT成功率 (%)
+}
+```
+
+### 情報ソースの分離
+
+選手情報は2つのサイトから取得し、1回のGPT呼び出しで処理する:
+
+| 情報ソース | URL フィールド | 取得する情報 | 必須/任意 |
+|---|---|---|---|
+| ESPN | `espnUrl` | team, position, number, stats | 必須 |
+| 契約情報サイト（Spotrac等） | `contractUrl` | contractAmount, contractYears | 任意 |
+
+- `contractUrl` が未設定でもAI更新は動作する（契約情報はスキップ）
+- 両URLを設定すると `Promise.all` で並行fetchし、テキストを合体して1回のGPT呼び出しで処理
+
+## アーキテクチャ
+
+### 処理フロー
+
+```
+[管理者] /setup で「AI更新」ボタンを押す
+    ↓
+[クライアント] POST /api/players/ai-update { playerId }
+    ↓
+[API Route] 1. Firestoreから選手データを取得（espnUrl, contractUrlを含む）
+    ↓
+[API Route] 2. ESPN + 契約サイトを Promise.all で並行fetch
+    ↓
+[API Route] 3. 両方のHTMLからテキストを抽出し合体
+             - ESPNテキスト: 最大5000文字
+             - 契約テキスト: 最大3000文字（存在する場合のみ）
+    ↓
+[API Route] 4. GPT-4o-miniに1回送信
+             - プロンプトで情報ソースの役割を明示
+             - 「team/stats → ESPNテキスト」「contract → 契約テキスト」
+    ↓
+[API Route] 5. JSONをパース・バリデーション
+    ↓
+[API Route] 6. Firestoreの選手ドキュメントを更新
+    ↓
+[クライアント] 更新結果を表示（成功/失敗 + 更新された項目）
+```
+
+### API仕様
+
+**エンドポイント**: `POST /api/players/ai-update`
+**ファイル**: `app/api/players/ai-update/route.ts`
+**モデル**: `gpt-4o-mini`（temperature: 0.1, max_tokens: 512）
+**環境変数**: 既存の `OPENAI_API_KEY` を使用
+
+### コスト見積もり
+
+- ESPNテキスト: 最大5000文字 → 約1250トークン
+- 契約テキスト: 最大3000文字 → 約750トークン（ある場合）
+- プロンプト + 出力: 約400トークン
+- **ESPNのみ: 約0.03円/回**
+- **ESPN + 契約サイト: 約0.04円/回**（+0.01円程度）
+- 月100回でも3〜4円程度
+
+## スタッツ表示UI設計
+
+### 折りたたみ式スタッツ（選手詳細ページ）
+
+**ファイル**: `app/players/[playerId]/PlayerDetailClient.tsx`
+
+#### 通常時（閉じた状態）
+主要3スタッツ（PTS, REB, AST）のみ大きく表示。
+英語略称の下に小さな日本語ラベルを添える。
+
+#### 展開時（開いた状態）
+カテゴリ分けして詳細スタッツを表示:
+
+1. **Shooting / シューティング**: FG%, 3PT%, FT%
+2. **Defense / ディフェンス**: STL, BLK（グリッド表示）
+3. **Other / その他**: TOV, MPG, GP
+
+#### 日本語ラベル対応表
+
+| 英語 | 日本語 |
+|---|---|
+| PTS | 得点 |
+| AST | アシスト |
+| REB | リバウンド |
+| FG% | FG成功率 |
+| 3PT% | 3P成功率 |
+| FT% | FT成功率 |
+| STL | スティール |
+| BLK | ブロック |
+| TOV | ターンオーバー |
+| MPG | 出場時間 |
+| GP | 出場試合数 |
+
+#### アニメーション
+- `transition-all duration-300 ease-in-out` + `max-height` で滑らかに開閉
+- 矢印アイコンが `rotate-180` で回転
+- state: `statsExpanded` (boolean)
+
+## 既存コードとの関係
+
+- **OpenAI API呼び出し**: `app/api/games/fetch-from-chatgpt/route.ts` と同じパターン
+- **Firestore更新**: `lib/firebase/admin-firestore.ts` の `updatePlayerAdmin` を使用
+- **選手API**: `app/api/players/route.ts` の POST/PUT に `espnUrl`, `contractUrl` フィールド対応済み
+- **認証**: `/setup` ページのパスワード認証で保護
+
+## 編集モーダルのURL入力
+
+`/setup` の選手編集モーダルに「AI更新用URL」セクションとして以下の2フィールドを配置:
+- **ESPN URL**: スタッツ・チーム情報用（`espnUrl`）
+- **契約情報URL**: 年俸・契約年数用（`contractUrl`）
+
+グレーの枠で囲み、両フィールドをグループ化して表示。

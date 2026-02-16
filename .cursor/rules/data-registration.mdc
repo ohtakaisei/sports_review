@@ -1,0 +1,109 @@
+---
+description: 選手データと試合結果の手動登録方法
+globs:
+  - app/api/players/**
+  - app/api/games/**
+  - scripts/**
+---
+
+# データ登録ガイド
+
+## 選手データの登録
+
+### Firebaseコンソールからの手動登録
+
+Firebase Console → Firestore Database → `players` コレクション → ドキュメントを追加
+
+**ドキュメントID**: 選手名をkebab-caseに変換（例: `lebron-james`）
+
+#### 必須フィールド
+
+| フィールド | 型 | 例 |
+|---|---|---|
+| `playerId` | string | `lebron-james` |
+| `name` | string | `レブロン・ジェームズ` |
+| `team` | string | `ロサンゼルス・レイカーズ` |
+| `sport` | string | `nba` |
+| `imageUrl` | string | `https://cdn.nba.com/headshots/nba/latest/1040x760/2544.png` |
+| `reviewCount` | number | `0` |
+| `summary` | map | `{}` |
+
+#### オプションフィールド
+
+| フィールド | 型 | 例 |
+|---|---|---|
+| `position` | string | `SF`, `PG`, `SG`, `PF`, `C` |
+| `number` | number | `23` |
+| `height` | string | `206cm` |
+| `weight` | string | `113kg` |
+| `birthDate` | string | `1984年12月30日` |
+| `country` | string | `アメリカ` |
+| `draftYear` | number | `2003` |
+| `draftRound` | number | `1` |
+| `draftPick` | number | `1` |
+| `shopUrl` | string | ショップURL |
+| `espnUrl` | string | ESPN選手ページURL（AI更新用） |
+| `contractUrl` | string | 契約情報ページURL（AI更新用） |
+
+### 管理画面からの登録
+
+`/setup` ページから「選手を追加」ボタンで登録可能。
+
+### 画像URLの取得
+
+```
+NBA公式CDN: https://cdn.nba.com/headshots/nba/latest/1040x760/{PLAYER_ID}.png
+デフォルト: https://cdn.nba.com/headshots/nba/latest/1040x760/default.png
+```
+
+### チーム名の統一
+
+日本語の正式名称を使用（例: `ロサンゼルス・レイカーズ`）。プロジェクト全体で統一すること。
+
+## 試合結果の登録
+
+### 方法1: スクリプト（推奨）
+
+`scripts/add-game.ts` を編集して実行:
+
+```bash
+tsx scripts/add-game.ts
+```
+
+```typescript
+const gameData = {
+  date: '2025-12-07',        // YYYY-MM-DD形式
+  homeTeam: 'フィラデルフィア・セブンティシクサーズ',
+  awayTeam: 'ロサンゼルス・レイカーズ',
+  homeScore: 108,
+  awayScore: 112,
+  status: 'finished',        // 'finished' | 'scheduled' | 'live'
+};
+```
+
+### 方法2: APIエンドポイント
+
+```bash
+curl -X POST http://localhost:3000/api/games \
+  -H "Content-Type: application/json" \
+  -d '{"date":"2025-12-07","homeTeam":"...","awayTeam":"...","homeScore":108,"awayScore":112,"status":"finished"}'
+```
+
+### 方法3: 管理画面のChatGPT取得
+
+`/setup` ページの試合管理セクションから、日付・チーム名を入力してAIが試合結果を自動取得。
+
+### 注意事項
+
+- **重複チェック**: 同じ日付・同じチームの試合は登録不可
+- **スコア検証**: 0-0の試合は登録不可
+- **選手データ不要**: チームのロスターは自動取得される
+- **チーム名一致**: DBに登録されているチーム名と完全一致が必要
+
+### 動作の流れ
+
+1. 管理者が試合結果（日付、チーム名、スコア）を登録
+2. ユーザーが試合詳細ページにアクセス
+3. システムがホーム/アウェイの全ロスターを自動取得・表示
+4. ユーザーが各選手をクリックして試合の評価を投稿
+5. 評価は試合ごとに管理（通常の選手評価とは別）

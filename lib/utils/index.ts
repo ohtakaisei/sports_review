@@ -81,4 +81,3 @@ export function getGradeColorForBadge(grade: ScoreGrade): string {
   };
   return colorMap[grade];
 }
-

@@ -1,0 +1,122 @@
+---
+description: Vercelデプロイの手順、チェックリスト、FIREBASE_PRIVATE_KEYのトラブルシューティング
+globs:
+  - vercel.json
+  - next.config.*
+---
+
+# Vercelデプロイガイド
+
+## 前提条件
+
+- GitHubアカウント
+- Vercelアカウント（[vercel.com](https://vercel.com)で無料作成）
+- Firebaseプロジェクト作成済み
+- 環境変数の値が準備済み
+
+## デプロイ手順
+
+### 1. GitHubリポジトリの準備
+
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/your-username/your-repo.git
+git push -u origin main
+```
+
+### 2. Vercelでプロジェクトをインポート
+
+1. Vercel Dashboardで「Add New...」→「Project」
+2. GitHubリポジトリを選択 →「Import」
+
+### 3. プロジェクト設定
+
+- **Framework Preset**: Next.js（自動検出）
+- **Root Directory**: `./`
+- **Build Command**: `npm run build`
+- **Output Directory**: `.next`
+
+### 4. 環境変数の設定
+
+Vercel Dashboard → Settings → Environment Variables で以下を設定:
+
+**必須:**
+```
+NEXT_PUBLIC_FIREBASE_API_KEY
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+NEXT_PUBLIC_FIREBASE_PROJECT_ID
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+NEXT_PUBLIC_FIREBASE_APP_ID
+FIREBASE_CLIENT_EMAIL
+FIREBASE_PRIVATE_KEY
+ADMIN_PASSWORD
+OPENAI_API_KEY
+```
+
+**オプション:**
+```
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+RECAPTCHA_SECRET_KEY
+GEMINI_API_KEY
+```
+
+Environment: Production / Preview / Development すべてにチェック。
+
+### 5. デプロイ実行
+
+「Deploy」ボタンをクリック → ビルド完了後URLが生成される。
+
+## FIREBASE_PRIVATE_KEY の設定（重要）
+
+### ローカル (.env.local) と Vercel で形式が異なる
+
+| 環境 | ダブルクォート | `\n` |
+|---|---|---|
+| `.env.local` | **必要** `"-----BEGIN...-----END...\n"` | 文字列のまま |
+| Vercel Dashboard | **不要** `-----BEGIN...-----END...\n` | 文字列のまま |
+
+### Vercelで「Invalid PEM formatted message」エラーが出た場合
+
+1. Vercel Dashboard → Settings → Environment Variables
+2. `FIREBASE_PRIVATE_KEY` を編集
+3. **ダブルクォートを外して**貼り付け:
+   ```
+   -----BEGIN PRIVATE KEY-----\nMIIEvQIBA...\n-----END PRIVATE KEY-----\n
+   ```
+4. `\n`はそのまま残す（実際の改行に変換しない）
+5. 値の前後に空白や改行を入れない
+6. 再デプロイ
+
+## デプロイ後の動作確認チェックリスト
+
+- [ ] サイトにアクセスできる
+- [ ] トップページが表示される
+- [ ] 選手一覧・詳細ページが表示される
+- [ ] レビュー投稿が動作する
+- [ ] Firestoreにデータが保存される
+- [ ] 画像が表示される
+- [ ] レスポンシブデザインが動作する
+- [ ] `/setup` でパスワード認証が動作する
+
+## トラブルシューティング
+
+| 問題 | 解決策 |
+|---|---|
+| 環境変数が見つからない | Vercel Dashboardで環境変数名・値・適用範囲を確認 |
+| Firebase接続エラー | `NEXT_PUBLIC_FIREBASE_*` が正しいか確認 |
+| Admin SDK初期化エラー | `FIREBASE_PRIVATE_KEY` の形式を確認（上記参照） |
+| API Routesが動作しない | ビルドログ確認、環境変数確認 |
+| Firestoreへの書き込み不可 | Firestoreセキュリティルールを確認 |
+
+## 自動デプロイ
+
+GitHubにプッシュすると自動的にVercelで再デプロイされる。
+
+## Vercel Hobbyプランの制約
+
+- 非商用利用のみ（広告収益・有料機能は商用プランが必要）
+- 商用化する場合はGCP等への移行を検討

@@ -215,6 +215,10 @@ export default function SetupPage() {
   const [deletingGame, setDeletingGame] = useState<any | null>(null);
   const [gameViewMode, setGameViewMode] = useState<'fetch' | 'manage'>('fetch');
   
+  // AI更新用のstate
+  const [aiUpdatingPlayer, setAiUpdatingPlayer] = useState<string | null>(null);
+  const [aiUpdateResult, setAiUpdateResult] = useState<{ playerId: string; success: boolean; message: string; updatedFields?: string[] } | null>(null);
+
   // ページネーション用のstate
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12; // 1ページあたり12人表示
@@ -562,6 +566,54 @@ export default function SetupPage() {
       setError(`削除に失敗しました: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // AI更新
+  const handleAiUpdate = async (player: Player) => {
+    if (!player.espnUrl) {
+      alert('ESPN URLが設定されていません。編集画面からESPN URLを設定してください。');
+      return;
+    }
+
+    setAiUpdatingPlayer(player.playerId);
+    setAiUpdateResult(null);
+
+    try {
+      const response = await fetch('/api/players/ai-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId: player.playerId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAiUpdateResult({
+          playerId: player.playerId,
+          success: false,
+          message: data.error || 'AI更新に失敗しました',
+        });
+        return;
+      }
+
+      setAiUpdateResult({
+        playerId: player.playerId,
+        success: true,
+        message: data.message,
+        updatedFields: data.updatedFields,
+      });
+
+      // 選手一覧を再取得して最新データを反映
+      await fetchPlayers();
+    } catch (err) {
+      setAiUpdateResult({
+        playerId: player.playerId,
+        success: false,
+        message: `エラー: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    } finally {
+      setAiUpdatingPlayer(null);
     }
   };
 
@@ -1117,6 +1169,18 @@ service cloud.firestore {
                       </div>
                     </div>
                     
+                    {/* AI更新結果 */}
+                    {aiUpdateResult && aiUpdateResult.playerId === player.playerId && (
+                      <div className={`mt-3 rounded-md p-2 text-xs ${aiUpdateResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                        <p className="font-medium">{aiUpdateResult.message}</p>
+                        {aiUpdateResult.updatedFields && aiUpdateResult.updatedFields.length > 0 && (
+                          <p className="mt-1 text-green-600">
+                            {aiUpdateResult.updatedFields.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="mt-4 flex gap-2">
                       <button
                         onClick={() => setEditingPlayer(player)}
@@ -1124,11 +1188,28 @@ service cloud.firestore {
                       >
                         ✏️ 編集
                       </button>
+                      {player.espnUrl && (
+                        <button
+                          onClick={() => handleAiUpdate(player)}
+                          disabled={aiUpdatingPlayer === player.playerId}
+                          className="flex-1 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {aiUpdatingPlayer === player.playerId ? (
+                            <span className="flex items-center justify-center gap-1">
+                              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              更新中
+                            </span>
+                          ) : 'AI更新'}
+                        </button>
+                      )}
                       <button
                         onClick={() => setDeletingPlayer(player)}
-                        className="flex-1 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                        className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
                       >
-                        🗑️ 削除
+                        🗑️
                       </button>
                     </div>
                   </div>
@@ -2066,6 +2147,32 @@ function EditPlayerModal({
               </div>
             </div>
 
+            {/* AI更新用URL */}
+            <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm font-medium text-gray-700">AI更新用URL</p>
+              <div>
+                <label className="block text-xs font-medium text-gray-600">ESPN URL（スタッツ・チーム情報）</label>
+                <input
+                  type="url"
+                  value={formData.espnUrl || ''}
+                  onChange={(e) => setFormData({ ...formData, espnUrl: e.target.value })}
+                  placeholder="https://www.espn.com/nba/player/_/id/1966/lebron-james"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600">契約情報URL（年俸・契約年数）</label>
+                <input
+                  type="url"
+                  value={formData.contractUrl || ''}
+                  onChange={(e) => setFormData({ ...formData, contractUrl: e.target.value })}
+                  placeholder="https://www.spotrac.com/nba/player/_/id/xxx"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <p className="text-xs text-gray-500">両URLを設定するとAI更新ボタンでスタッツと契約情報を同時に更新できます</p>
+            </div>
+
           <div className="flex gap-3 pt-4">
             <button
               type="button"
@@ -2365,4 +2472,3 @@ function DeleteGameConfirmDialog({
     </div>
   );
 }
-

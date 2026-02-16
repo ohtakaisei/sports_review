@@ -1,0 +1,81 @@
+---
+description: スパム対策（レート制限、reCAPTCHA、コンテンツフィルタリング）の設計と実装
+globs:
+  - app/api/reviews/**
+  - app/api/game-reviews/**
+  - lib/utils/**
+---
+
+# スパム対策
+
+## 実装済みの対策
+
+### 1. レート制限
+
+- **制限**: 1分間あたり2回まで投稿可能
+- **識別**: IPアドレスベース
+- **実装**: メモリベース（本番ではVercel KV推奨）
+
+### 2. reCAPTCHA v3
+
+- **閾値**: スコア0.5以上で投稿許可
+- **実装**: フロントエンド + サーバーサイド検証
+
+## reCAPTCHA設定手順
+
+1. [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin) でサイトを登録
+   - タイプ: reCAPTCHA v3
+   - ドメイン: `localhost`（開発用）+ 本番ドメイン + `*.vercel.app`
+2. `.env.local` に追加:
+   ```env
+   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_site_key
+   RECAPTCHA_SECRET_KEY=your_secret_key
+   ```
+
+## 本番環境の追加対策
+
+### Vercel KVレート制限
+
+```typescript
+import { kv } from '@vercel/kv';
+
+export async function checkRateLimitKV(identifier: string) {
+  const key = `rate_limit:${identifier}`;
+  const current = await kv.get<number>(key) || 0;
+  if (current >= 2) return { allowed: false, remaining: 0 };
+  await kv.incr(key);
+  await kv.expire(key, 60);
+  return { allowed: true, remaining: 2 - current - 1 };
+}
+```
+
+### コンテンツフィルタリング
+
+```typescript
+const SPAM_KEYWORDS = ['spam', 'bot', 'fake', 'scam'];
+const SUSPICIOUS_PATTERNS = [
+  /(.)\1{10,}/,              // 同じ文字の繰り返し
+  /https?:\/\/[^\s]+/g,      // URL大量含有
+];
+
+export function isSpamContent(text: string): boolean {
+  const lowerText = text.toLowerCase();
+  if (SPAM_KEYWORDS.some(kw => lowerText.includes(kw))) return true;
+  if (SUSPICIOUS_PATTERNS.some(p => p.test(text))) return true;
+  return false;
+}
+```
+
+## 自動ブロック条件
+
+- 1分間に2回以上投稿
+- reCAPTCHAスコア < 0.5
+- スパムキーワードを含む投稿
+- 同じコメントの繰り返し
+
+## 監視指標
+
+- スパム投稿の検出率
+- レート制限によるブロック数
+- reCAPTCHAのスコア分布
+- 正常ユーザーの投稿成功率

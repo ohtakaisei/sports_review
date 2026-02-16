@@ -1,0 +1,102 @@
+---
+description: 試合結果取得に使用するAI API（OpenAI / Gemini）のセットアップ
+globs:
+  - app/api/games/fetch-from-chatgpt/**
+---
+
+# AI API設定ガイド（試合結果取得用）
+
+## OpenAI API（ChatGPT）
+
+### 環境変数
+
+```env
+OPENAI_API_KEY=sk-your-openai-api-key-here
+```
+
+### APIキーの取得
+
+1. [OpenAI Platform](https://platform.openai.com/) にログイン
+2. [API Keys](https://platform.openai.com/api-keys) ページへ
+3. 「Create new secret key」をクリック
+4. 生成されたキーを `.env.local` に設定
+
+### 使用モデル
+
+- 試合結果取得: `gpt-4o-mini`（低コスト）
+- AI選手情報更新: `gpt-4o-mini`（`ai-player-update.mdc` 参照）
+
+### 料金
+
+- gpt-4o-mini は比較的安価
+- AI選手更新: 約0.03〜0.04円/回
+
+## Gemini API
+
+### 環境変数
+
+```env
+GEMINI_API_KEY=your-gemini-api-key-here
+```
+
+### APIキーの取得
+
+1. [Google AI Studio](https://makersuite.google.com/app/apikey) にログイン
+2. 「Create API Key」をクリック
+3. プロジェクトを選択（または新規作成）
+4. 生成されたキーを `.env.local` に設定
+
+### 特徴
+
+- 最新のウェブ情報にアクセス可能
+- 無料枠: 月60リクエスト/分
+- JSON形式の出力をサポート
+
+## APIエンドポイント
+
+`POST /api/games/fetch-from-chatgpt`
+
+エンドポイント名は `fetch-from-chatgpt` だが、内部では設定されたAPIキーに応じてOpenAIまたはGeminiを使用。
+
+### リクエスト
+
+```json
+{
+  "date": "2025-01-15",
+  "homeTeam": "ロサンゼルス・レイカーズ",
+  "awayTeam": "ゴールデンステート・ウォリアーズ"
+}
+```
+
+### レスポンス
+
+```json
+{
+  "success": true,
+  "gameId": "game-xxx",
+  "gameData": {
+    "date": "2025-01-15",
+    "homeTeam": "ロサンゼルス・レイカーズ",
+    "awayTeam": "ゴールデンステート・ウォリアーズ",
+    "homeScore": 120,
+    "awayScore": 115,
+    "status": "finished",
+    "players": [...]
+  }
+}
+```
+
+## セキュリティ注意事項
+
+- APIキーは `.env.local` にのみ保存（`.gitignore`に含まれている）
+- 公開リポジトリにコミットしない
+- 漏洩した場合は即座に各プラットフォームでキーを無効化
+- 本番環境ではVercel Dashboard → Environment Variables で設定
+
+## トラブルシューティング
+
+| エラー | 解決策 |
+|---|---|
+| APIキーが設定されていません | `.env.local` 確認 + サーバー再起動 |
+| API error | キーが有効か確認、使用制限を確認 |
+| 試合結果が取得できない | 試合日が正しいか、チーム名が正確（日本語正式名称）か確認 |
