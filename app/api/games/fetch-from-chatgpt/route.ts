@@ -3,6 +3,46 @@ import { getGames } from '@/lib/firebase/firestore';
 import { createGameAdmin, checkGameExistsAdmin } from '@/lib/firebase/admin-firestore';
 import { Game, GamePlayerStats } from '@/lib/types';
 
+interface OpenAIResponse {
+  choices?: { message?: { content?: string } }[];
+  error?: { message?: string };
+}
+
+interface GameDataRaw {
+  games?: GameDataRaw[];
+  date?: string;
+  homeTeam?: string;
+  awayTeam?: string;
+  homeScore?: number;
+  awayScore?: number;
+  status?: string;
+  players?: PlayerDataRaw[];
+  error?: string;
+  message?: string;
+}
+
+interface PlayerDataRaw {
+  playerId?: string;
+  name?: string;
+  team?: string;
+  pts?: number;
+  ast?: number;
+  reb?: number;
+  fg?: number;
+  fga?: number;
+  fgm?: number;
+  threePt?: number;
+  threePtA?: number;
+  ft?: number;
+  fta?: number;
+  stl?: number;
+  blk?: number;
+  tov?: number;
+  pf?: number;
+  plusMinus?: number;
+  minutes?: string;
+}
+
 /**
  * ChatGPT APIを使って試合結果を取得して登録するAPI
  * 
@@ -197,7 +237,7 @@ ${isSpecificGame ? `{
       'gpt-4',            // フォールバック
     ];
     
-    let data: any;
+    let data: OpenAIResponse | null = null;
     let lastError: Error | null = null;
     
     for (const model of models) {
@@ -254,13 +294,13 @@ ${isSpecificGame ? `{
 
         if (!response.ok) {
           let errorMessage = 'Unknown error';
-          let errorDetails: any = null;
+          let errorDetails: unknown = null;
           try {
             const errorData = await response.json();
             errorMessage = errorData.error?.message || errorData.message || `HTTP ${response.status}`;
             errorDetails = errorData;
             console.error(`[ChatGPT API] Model ${model} error response:`, JSON.stringify(errorData, null, 2));
-          } catch (parseError) {
+          } catch {
             const text = await response.text().catch(() => '');
             errorMessage = `HTTP ${response.status}: ${text || 'Unknown error'}`;
             console.error(`[ChatGPT API] Model ${model} error (text):`, text);
@@ -296,29 +336,30 @@ ${isSpecificGame ? `{
           throw new Error(`Vertex AI error (${model}): ${errorMessage} (HTTP ${response.status})`);
         }
 
-        data = await response.json();
-        
+        const responseData = await response.json() as OpenAIResponse;
+        data = responseData;
+
         // レスポンスの完全な内容をログに出力
         console.log('========================================');
         console.log(`[ChatGPT API] ✅ Success with model: ${model}`);
         console.log('[ChatGPT API] Full response data:');
         console.log('========================================');
-        console.log(JSON.stringify(data, null, 2));
+        console.log(JSON.stringify(responseData, null, 2));
         console.log('========================================');
         console.log('[ChatGPT API] End of response data');
         console.log('========================================');
-        
+
         // エラーチェック
-        if (data.error) {
-          console.error('[ChatGPT API] Response contains error:', data.error);
-          throw new Error(`Vertex AI error (${model}): ${data.error.message || 'Unknown error'}`);
+        if (responseData.error) {
+          console.error('[ChatGPT API] Response contains error:', responseData.error);
+          throw new Error(`Vertex AI error (${model}): ${responseData.error.message || 'Unknown error'}`);
         }
 
         // 成功した場合はループを抜ける
         console.log(`[ChatGPT API] Response structure:`, {
-          hasChoices: !!data.choices,
-          choicesCount: data.choices?.length || 0,
-          hasContent: !!data.choices?.[0]?.message?.content,
+          hasChoices: !!responseData.choices,
+          choicesCount: responseData.choices?.length || 0,
+          hasContent: !!responseData.choices?.[0]?.message?.content,
         });
         console.log('[ChatGPT API] ========================================');
         break;
@@ -373,9 +414,9 @@ ${isSpecificGame ? `{
     console.log('========================================');
 
     // JSONをパース
-    let gameData;
+    let gameData: GameDataRaw;
     try {
-      gameData = JSON.parse(content);
+      gameData = JSON.parse(content) as GameDataRaw;
       console.log('========================================');
       console.log('[ChatGPT API] Parsed JSON data:');
       console.log('========================================');
@@ -395,7 +436,7 @@ ${isSpecificGame ? `{
       console.log('========================================');
       console.log('[ChatGPT API] End of cleaned content');
       console.log('========================================');
-      gameData = JSON.parse(cleanedContent);
+      gameData = JSON.parse(cleanedContent) as GameDataRaw;
       console.log('========================================');
       console.log('[ChatGPT API] Parsed JSON data (after cleaning):');
       console.log('========================================');
@@ -424,7 +465,7 @@ ${isSpecificGame ? `{
     console.log('[Data Validation] Raw gameData:', JSON.stringify(gameData, null, 2));
     
     // 複数の試合が返ってきた場合（games配列がある場合）
-    let gamesToProcess: any[] = [];
+    let gamesToProcess: GameDataRaw[] = [];
     if (gameData.games && Array.isArray(gameData.games)) {
       console.log(`[Data Validation] Multiple games found: ${gameData.games.length}`);
       gamesToProcess = gameData.games;
@@ -466,7 +507,7 @@ ${isSpecificGame ? `{
     }
     
     // 選手のスタッツがすべて0でないかチェック
-    const playersWithStats = players.filter((p: any) => 
+    const playersWithStats = players.filter((p: PlayerDataRaw) =>
       (p.pts ?? 0) > 0 || (p.ast ?? 0) > 0 || (p.reb ?? 0) > 0
     );
     
@@ -494,8 +535,8 @@ ${isSpecificGame ? `{
       awayTeam: firstGame.awayTeam || awayTeam,
       homeScore,
       awayScore,
-      status: firstGame.status || 'finished',
-      players: players.map((player: any) => {
+      status: (firstGame.status as 'finished' | 'scheduled' | 'live') || 'finished',
+      players: players.map((player: PlayerDataRaw) => {
         if (!player.name) {
           console.warn('[Data Validation] Warning: Player without name:', player);
         }
@@ -529,7 +570,7 @@ ${isSpecificGame ? `{
       awayTeam: formattedGameData.awayTeam,
       homeScore: formattedGameData.homeScore,
       awayScore: formattedGameData.awayScore,
-      playersCount: formattedGameData.players.length,
+      playersCount: formattedGameData.players?.length ?? 0,
     });
 
     // Firestoreに保存（Admin SDK使用）

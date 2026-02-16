@@ -19,24 +19,24 @@ export default function AddPlayerModal({
     team: '',
     sport: 'nba',
     position: '',
-    number: null,
+    number: undefined,
     height: '',
     weight: '',
     birthDate: '',
     country: '',
     imageUrl: '',
-    draftYear: null,
-    draftRound: null,
-    draftPick: null,
-    stats: null,
-    contractAmount: null,
-    contractYears: null,
-    shopUrl: null,
+    draftYear: undefined,
+    draftRound: undefined,
+    draftPick: undefined,
+    stats: undefined,
+    contractAmount: undefined,
+    contractYears: undefined,
+    shopUrl: undefined,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    onSave({ ...formData, reviewCount: 0, summary: {}, rank: 'F' });
   };
 
   return (
@@ -105,7 +105,7 @@ export default function AddPlayerModal({
               <input
                 type="number"
                 value={formData.number || ''}
-                onChange={(e) => setFormData({ ...formData, number: e.target.value ? Number(e.target.value) : null })}
+                onChange={(e) => setFormData({ ...formData, number: e.target.value ? Number(e.target.value) : undefined })}
                 placeholder="例: 23"
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
@@ -176,7 +176,7 @@ export default function AddPlayerModal({
                 <input
                   type="number"
                   value={formData.draftYear || ''}
-                  onChange={(e) => setFormData({ ...formData, draftYear: e.target.value ? Number(e.target.value) : null })}
+                  onChange={(e) => setFormData({ ...formData, draftYear: e.target.value ? Number(e.target.value) : undefined })}
                   placeholder="例: 2003"
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -186,7 +186,7 @@ export default function AddPlayerModal({
                 <input
                   type="number"
                   value={formData.draftRound || ''}
-                  onChange={(e) => setFormData({ ...formData, draftRound: e.target.value ? Number(e.target.value) : null })}
+                  onChange={(e) => setFormData({ ...formData, draftRound: e.target.value ? Number(e.target.value) : undefined })}
                   placeholder="例: 1"
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -196,7 +196,7 @@ export default function AddPlayerModal({
                 <input
                   type="number"
                   value={formData.draftPick || ''}
-                  onChange={(e) => setFormData({ ...formData, draftPick: e.target.value ? Number(e.target.value) : null })}
+                  onChange={(e) => setFormData({ ...formData, draftPick: e.target.value ? Number(e.target.value) : undefined })}
                   placeholder="例: 1"
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -300,7 +300,7 @@ export default function AddPlayerModal({
                 <input
                   type="number"
                   value={formData.contractAmount || ''}
-                  onChange={(e) => setFormData({ ...formData, contractAmount: e.target.value ? Number(e.target.value) : null })}
+                  onChange={(e) => setFormData({ ...formData, contractAmount: e.target.value ? Number(e.target.value) : undefined })}
                   placeholder="例: 47607350"
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -310,7 +310,7 @@ export default function AddPlayerModal({
                 <input
                   type="number"
                   value={formData.contractYears || ''}
-                  onChange={(e) => setFormData({ ...formData, contractYears: e.target.value ? Number(e.target.value) : null })}
+                  onChange={(e) => setFormData({ ...formData, contractYears: e.target.value ? Number(e.target.value) : undefined })}
                   placeholder="例: 2"
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />

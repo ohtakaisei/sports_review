@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { collection, doc, setDoc, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Player } from '@/lib/types';
+import { Player, Game } from '@/lib/types';
 import AddPlayerModal from './add-player-modal';
 
 // サンプル選手データ
@@ -209,10 +209,10 @@ export default function SetupPage() {
   const [manualAwayTeam, setManualAwayTeam] = useState('');
   
   // 試合結果管理用のstate
-  const [games, setGames] = useState<any[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
   const [loadingGames, setLoadingGames] = useState(false);
-  const [editingGame, setEditingGame] = useState<any | null>(null);
-  const [deletingGame, setDeletingGame] = useState<any | null>(null);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [deletingGame, setDeletingGame] = useState<Game | null>(null);
   const [gameViewMode, setGameViewMode] = useState<'fetch' | 'manage'>('fetch');
   
   // AI更新用のstate
@@ -308,7 +308,7 @@ export default function SetupPage() {
   };
 
   // 試合結果を更新
-  const handleUpdateGame = async (gameData: any) => {
+  const handleUpdateGame = async (gameData: Partial<Game>) => {
     setLoading(true);
     try {
       const response = await fetch(`/api/games/${editingGame?.gameId}`, {
@@ -446,7 +446,7 @@ export default function SetupPage() {
             team: player.team,
             sport: player.sport || 'nba',
             position: player.position || '',
-            number: player.number || null,
+            number: player.number || undefined,
             height: player.height || '',
             weight: player.weight || '',
             birthDate: player.birthDate || '',
@@ -454,15 +454,14 @@ export default function SetupPage() {
             imageUrl: player.imageUrl || '',
             reviewCount: player.reviewCount || 0,
             summary: player.summary || {},
-            rank: player.rank || 'F', // 総合ランク（初期値: F）
-            // 新しいフィールドを追加
-            draftYear: player.draftYear || null,
-            draftRound: player.draftRound || null,
-            draftPick: player.draftPick || null,
-            stats: player.stats || null,
-            contractAmount: player.contractAmount || null,
-            contractYears: player.contractYears || null,
-            shopUrl: player.shopUrl || null
+            rank: player.rank || 'F',
+            draftYear: player.draftYear || undefined,
+            draftRound: player.draftRound || undefined,
+            draftPick: player.draftPick || undefined,
+            stats: player.stats || undefined,
+            contractAmount: player.contractAmount || undefined,
+            contractYears: player.contractYears || undefined,
+            shopUrl: player.shopUrl || undefined
           };
 
           const playerRef = doc(db, 'players', String(player.playerId));
@@ -635,7 +634,7 @@ export default function SetupPage() {
         team: newPlayer.team,
         sport: newPlayer.sport || 'nba',
         position: newPlayer.position || '',
-        number: newPlayer.number || null,
+        number: newPlayer.number || undefined,
         height: newPlayer.height || '',
         weight: newPlayer.weight || '',
         birthDate: newPlayer.birthDate || '',
@@ -644,13 +643,13 @@ export default function SetupPage() {
         reviewCount: 0,
         summary: {},
         rank: 'F',
-        draftYear: newPlayer.draftYear || null,
-        draftRound: newPlayer.draftRound || null,
-        draftPick: newPlayer.draftPick || null,
-        stats: newPlayer.stats || null,
-        contractAmount: newPlayer.contractAmount || null,
-        contractYears: newPlayer.contractYears || null,
-        shopUrl: newPlayer.shopUrl || null,
+        draftYear: newPlayer.draftYear || undefined,
+        draftRound: newPlayer.draftRound || undefined,
+        draftPick: newPlayer.draftPick || undefined,
+        stats: newPlayer.stats || undefined,
+        contractAmount: newPlayer.contractAmount || undefined,
+        contractYears: newPlayer.contractYears || undefined,
+        shopUrl: newPlayer.shopUrl || undefined,
       };
 
       // API Route経由で追加（Admin SDK使用）
@@ -1523,7 +1522,7 @@ service cloud.firestore {
                           gameId: data.gameId,
                         });
                         // 試合結果一覧を更新
-                        if (gameViewMode === 'manage') {
+                        if ((gameViewMode as string) === 'manage') {
                           await fetchGames();
                         }
                       } else if (response.ok && data.gameNotFound) {
@@ -1614,7 +1613,7 @@ service cloud.firestore {
                       setManualHomeTeam('');
                       setManualAwayTeam('');
                       // 試合結果一覧を更新
-                      if (gameViewMode === 'manage') {
+                      if ((gameViewMode as string) === 'manage') {
                         await fetchGames();
                       }
                     } else if (response.ok && data.gameNotFound) {
@@ -2261,9 +2260,9 @@ function EditGameModal({
   onSave,
   loading,
 }: {
-  game: any;
+  game: Game;
   onClose: () => void;
-  onSave: (gameData: any) => void;
+  onSave: (gameData: Partial<Game>) => void;
   loading: boolean;
 }) {
   const [formData, setFormData] = useState({
@@ -2307,7 +2306,7 @@ function EditGameModal({
               </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'finished' | 'scheduled' | 'live' })}
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="finished">終了</option>
@@ -2411,7 +2410,7 @@ function DeleteGameConfirmDialog({
   onConfirm,
   loading,
 }: {
-  game: any;
+  game: Game;
   onClose: () => void;
   onConfirm: () => void;
   loading: boolean;

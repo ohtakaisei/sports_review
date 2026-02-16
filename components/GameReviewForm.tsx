@@ -10,7 +10,7 @@ import { gradeToNumber } from '@/lib/utils';
 
 const reviewSchema = z.object({
   comment: z.string().min(10, 'コメントは10文字以上で入力してください'),
-  scores: z.record(z.enum(['S', 'A', 'B', 'C', 'D', 'E', 'F'])),
+  scores: z.record(z.string(), z.enum(['S', 'A', 'B', 'C', 'D', 'E', 'F'])),
   userName: z.string().optional(),
 });
 
@@ -52,7 +52,7 @@ export default function GameReviewForm({
 
   const currentScores = watch('scores');
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: z.infer<typeof reviewSchema>) => {
     setIsSubmitting(true);
     setSubmitError(null);
 

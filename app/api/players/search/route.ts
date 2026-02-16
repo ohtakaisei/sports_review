@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchPlayers } from '@/lib/firebase/firestore';
+import { Player } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,12 +36,14 @@ export async function GET(request: NextRequest) {
     // 結果を返す
     return NextResponse.json({
       success: true,
-      players: players.map(player => ({
-        ...player,
-        // FirestoreのTimestampをISO文字列に変換
-        createdAt: player.createdAt?.toISOString?.() || player.createdAt,
-        updatedAt: player.updatedAt?.toISOString?.() || player.updatedAt,
-      })),
+      players: players.map(player => {
+        const p = player as Player & { createdAt?: { toISOString?: () => string }; updatedAt?: { toISOString?: () => string } };
+        return {
+          ...p,
+          createdAt: p.createdAt?.toISOString?.() || p.createdAt,
+          updatedAt: p.updatedAt?.toISOString?.() || p.updatedAt,
+        };
+      }),
       count: players.length,
     });
   } catch (error) {

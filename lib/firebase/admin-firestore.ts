@@ -397,7 +397,7 @@ export async function createGameReviewAdmin(
 ): Promise<string> {
   const db = getAdminFirestore();
   
-  const reviewData: any = {
+  const reviewData: Record<string, unknown> = {
     gameId,
     playerId,
     playerName,
@@ -408,11 +408,11 @@ export async function createGameReviewAdmin(
     status: 'published',
     createdAt: FieldValue.serverTimestamp(),
   };
-  
+
   if (userName) {
     reviewData.userName = userName;
   }
-  
+
   if (parentReviewId) {
     reviewData.parentReviewId = parentReviewId;
   }

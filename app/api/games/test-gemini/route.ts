@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface OpenAITestResponse {
+  choices?: { message?: { content?: string } }[];
+  error?: { message?: string };
+}
+
 /**
  * ChatGPT APIの簡単なテスト用エンドポイント
  * API制限や接続の問題を確認するために使用
@@ -37,7 +42,7 @@ export async function POST(request: NextRequest) {
       'gpt-4',
     ];
 
-    let data: any;
+    let data: OpenAITestResponse | null = null;
     let lastError: Error | null = null;
     let successfulModel: string | null = null;
 
@@ -72,7 +77,7 @@ export async function POST(request: NextRequest) {
             const errorData = await response.json();
             errorMessage = errorData.error?.message || errorData.message || `HTTP ${response.status}`;
             console.error(`[ChatGPT Test] Model ${model} error:`, errorData);
-          } catch (parseError) {
+          } catch {
             const text = await response.text().catch(() => '');
             errorMessage = `HTTP ${response.status}: ${text || 'Unknown error'}`;
             console.error(`[ChatGPT Test] Model ${model} error (text):`, text);
@@ -100,20 +105,21 @@ export async function POST(request: NextRequest) {
           throw new Error(`ChatGPT API error (${model}): ${errorMessage} (HTTP ${response.status})`);
         }
 
-        data = await response.json();
+        const responseData = await response.json() as OpenAITestResponse;
+        data = responseData;
 
         // レスポンスの完全な内容をログに出力
         console.log('========================================');
         console.log(`[ChatGPT Test] ✅ Success with model: ${model}`);
         console.log('[ChatGPT Test] Full response data:');
         console.log('========================================');
-        console.log(JSON.stringify(data, null, 2));
+        console.log(JSON.stringify(responseData, null, 2));
         console.log('========================================');
 
         // エラーチェック
-        if (data.error) {
-          console.error('[ChatGPT Test] Response contains error:', data.error);
-          throw new Error(`ChatGPT API error (${model}): ${data.error.message || 'Unknown error'}`);
+        if (responseData.error) {
+          console.error('[ChatGPT Test] Response contains error:', responseData.error);
+          throw new Error(`ChatGPT API error (${model}): ${responseData.error.message || 'Unknown error'}`);
         }
 
         // 成功した場合はループを抜ける

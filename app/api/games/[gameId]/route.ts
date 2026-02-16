@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getGame } from '@/lib/firebase/firestore';
 import { getAdminFirestore } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { Game } from '@/lib/types';
 
 /**
  * 試合結果を取得するAPI
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  { params }: { params: Promise<{ gameId: string }> }
 ) {
   try {
-    const { gameId } = params;
+    const { gameId } = await params;
     const game = await getGame(gameId);
 
     if (!game) {
@@ -43,10 +42,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  { params }: { params: Promise<{ gameId: string }> }
 ) {
   try {
-    const { gameId } = params;
+    const { gameId } = await params;
     const body = await request.json();
 
     // バリデーション
@@ -102,10 +101,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  { params }: { params: Promise<{ gameId: string }> }
 ) {
   try {
-    const { gameId } = params;
+    const { gameId } = await params;
 
     const db = getAdminFirestore();
     const gameRef = db.collection('games').doc(gameId);

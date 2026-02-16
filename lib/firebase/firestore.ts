@@ -102,7 +102,7 @@ export async function searchPlayers(filters: {
   const playersCol = collection(db, 'players');
   
   // クエリを構築
-  const conditions: any[] = [];
+  const conditions: ReturnType<typeof where>[] = [];
   
   if (filters.team && filters.team !== 'all') {
     conditions.push(where('team', '==', filters.team));
@@ -381,7 +381,7 @@ export async function createGameReview(
     comment,
     scores,
     overallScore,
-    overallGrade: overallGrade as any,
+    overallGrade,
     status: 'published',
     createdAt: Timestamp.now(),
     ...(userName && { userName }),

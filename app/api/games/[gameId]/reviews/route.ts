@@ -7,11 +7,11 @@ import { SCORE_MAP, ScoreGrade } from '@/lib/types';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  { params }: { params: Promise<{ gameId: string }> }
 ) {
   try {
     const body = await request.json();
-    const { gameId } = params;
+    const { gameId } = await params;
 
     // バリデーション
     if (!body.playerId || !body.playerName || !body.comment || body.overallGrade === undefined) {
@@ -60,11 +60,11 @@ export async function POST(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  { params }: { params: Promise<{ gameId: string }> }
 ) {
   try {
     const { getGameReviews } = await import('@/lib/firebase/firestore');
-    const { gameId } = params;
+    const { gameId } = await params;
     const searchParams = request.nextUrl.searchParams;
     const playerId = searchParams.get('playerId') || undefined;
     const limit = parseInt(searchParams.get('limit') || '100', 10);
