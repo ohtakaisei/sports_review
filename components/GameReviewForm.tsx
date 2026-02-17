@@ -9,9 +9,12 @@ import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { gradeToNumber } from '@/lib/utils';
 
 const reviewSchema = z.object({
-  comment: z.string().min(10, 'コメントは10文字以上で入力してください'),
+  comment: z.string()
+    .min(10, 'コメントは10文字以上で入力してください')
+    .max(500, 'コメントは500文字以内で入力してください'),
   scores: z.record(z.string(), z.enum(['S', 'A', 'B', 'C', 'D', 'E', 'F'])),
   userName: z.string().optional(),
+  confirmed: z.literal(true, { message: '投稿前に確認チェックを入れてください' }),
 });
 
 interface GameReviewFormProps {
@@ -47,6 +50,7 @@ export default function GameReviewForm({
       comment: '',
       scores: {},
       userName: '',
+      confirmed: undefined as unknown as true,
     },
   });
 
@@ -186,6 +190,26 @@ export default function GameReviewForm({
           />
         </div>
 
+        {/* 確認チェックボックス */}
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('confirmed')}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">
+              同じ選手へのレビューは<strong>一度のみ</strong>投稿できます。
+              内容に間違いがないことを確認しました。
+            </span>
+          </label>
+          {errors.confirmed && (
+            <p className="mt-2 text-sm text-red-600">
+              {errors.confirmed.message as string}
+            </p>
+          )}
+        </div>
+
         {/* エラー表示 */}
         {submitError && (
           <div className="rounded-lg bg-red-50 p-4">
@@ -205,7 +229,7 @@ export default function GameReviewForm({
           </button>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !watch('confirmed')}
             className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {isSubmitting ? '投稿中...' : 'レビューを投稿'}

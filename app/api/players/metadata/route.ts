@@ -12,12 +12,19 @@ export async function GET(request: NextRequest) {
       new Set(players.map((p) => p.position).filter((p): p is string => !!p))
     ).sort();
     
-    return NextResponse.json({
-      success: true,
-      teams,
-      positions,
-      totalPlayers: players.length,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        teams,
+        positions,
+        totalPlayers: players.length,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
   } catch (error) {
     console.error('[API] Error getting metadata:', error);
     return NextResponse.json(

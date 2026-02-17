@@ -36,6 +36,7 @@ const reviewSchema = z.object({
       message: 'すべての項目を評価してください',
     }
   ),
+  confirmed: z.literal(true, { message: '投稿前に確認チェックを入れてください' }),
 });
 
 interface ReviewFormProps {
@@ -58,11 +59,12 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
     setValue,
     formState: { errors },
     reset,
-  } = useForm<ReviewFormData>({
+  } = useForm({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
       comment: '',
-      scores: {},
+      scores: {} as Record<string, 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F'>,
+      confirmed: undefined as unknown as true,
     },
   });
 
@@ -289,6 +291,26 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
         </p>
       </div>
 
+      {/* 確認チェックボックス */}
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            {...register('confirmed')}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span className="text-sm text-gray-700">
+            同じ選手へのレビューは<strong>一度のみ</strong>投稿できます。
+            内容に間違いがないことを確認しました。
+          </span>
+        </label>
+        {errors.confirmed && (
+          <p className="mt-2 text-sm text-red-600">
+            {errors.confirmed.message as string}
+          </p>
+        )}
+      </div>
+
       {/* エラーメッセージ */}
       {submitError && (
         <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 animate-fade-in">
@@ -299,7 +321,7 @@ export default function ReviewForm({ playerId, playerName, onSuccess }: ReviewFo
       {/* 送信ボタン */}
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !watch('confirmed')}
         className="btn-primary w-full text-sm sm:text-base py-3"
       >
         {isSubmitting ? (

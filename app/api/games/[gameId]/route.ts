@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getGame } from '@/lib/firebase/firestore';
 import { getAdminFirestore } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { checkAdminEnabled } from '@/lib/utils/admin-guard';
 
 /**
  * 試合結果を取得するAPI
@@ -44,6 +45,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ gameId: string }> }
 ) {
+  const guardResponse = checkAdminEnabled();
+  if (guardResponse) return guardResponse;
+
   try {
     const { gameId } = await params;
     const body = await request.json();
@@ -103,6 +107,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ gameId: string }> }
 ) {
+  const guardResponse = checkAdminEnabled();
+  if (guardResponse) return guardResponse;
+
   try {
     const { gameId } = await params;
 

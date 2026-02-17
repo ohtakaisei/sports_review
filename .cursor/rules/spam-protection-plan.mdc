@@ -1,0 +1,408 @@
+---
+description: レビュー投稿のスパム対策（文字数制限・同一選手制限・グローバル制限・重複検出）の設計と実装手順
+globs:
+  - app/api/reviews/**
+  - app/api/games/*/reviews/**
+  - lib/utils/rate-limit.ts
+  - components/ReviewForm.tsx
+  - components/GameReviewForm.tsx
+---
+
+# スパム対策の実装計画
+
+## 背景（なぜ必要か）
+
+現在のレビュー投稿には以下のリスクがある:
+
+1. **試合レビュー**にはレート制限が一切ない → ボットが無限に投稿可能
+2. **試合レビュー**にはコメント文字数上限がない → 巨大な文字列でDB圧迫
+3. **重複チェック**がない → 同じコメントをコピペで何度も投稿可能
+4. レート制限がメモリベース → サーバー再起動でリセットされる
+5. **reCAPTCHA v3が実質無効** → 検証失敗・低スコアでも投稿を続行している（`app/api/reviews/route.ts`）
+
+## 現状の整理
+
+### 選手レビュー（`POST /api/reviews`）
+- コメント: 10〜500文字 ✅ 既に制限あり
+- レート制限: 2回/分/IP ✅ あるが弱い（全選手共通でカウント）
+- 同一選手制限: なし ❌
+- 重複チェック: なし ❌
+
+### 試合レビュー（`POST /api/games/[gameId]/reviews`）
+- コメント: 最低10文字のみ、**上限なし** ❌
+- レート制限: **なし** ❌
+- 同一選手制限: なし ❌
+- 重複チェック: なし ❌
+
+## 実装する4つの対策
+
+### 対策1: コメント文字数制限（max 500文字）
+
+**何をするか**: すべてのレビューAPIで、コメントが500文字を超えたら拒否する。
+
+**なぜ500文字か**: 日本語500文字あれば十分なレビューが書ける。
+それ以上はスパムの可能性が高い。1レビュー500文字に抑えれば、
+仮に大量投稿されてもFirestoreのストレージを圧迫しにくい。
+
+#### 変更箇所
+
+**バックエンド（API Route）— 必ずサーバー側でチェック:**
+
+1. `app/api/reviews/route.ts` — 既に10-500文字チェックあり ✅ 変更不要
+2. `app/api/games/[gameId]/reviews/route.ts` — **ここにチェック追加** ❌
+
+```typescript
+// app/api/games/[gameId]/reviews/route.ts のPOSTハンドラ内に追加
+if (!body.comment || body.comment.length < 10 || body.comment.length > 500) {
+  return NextResponse.json(
+    { error: 'コメントは10文字以上500文字以内で入力してください' },
+    { status: 400 }
+  );
+}
+```
+
+**フロントエンド（コンポーネント）— UX向上のため:**
+
+3. `components/GameReviewForm.tsx` — Zodスキーマに `.max(500)` を追加
+
+```typescript
+// 変更前
+comment: z.string().min(10, 'コメントは10文字以上で入力してください'),
+// 変更後
+comment: z.string().min(10, 'コメントは10文字以上で入力してください').max(500, 'コメントは500文字以内で入力してください'),
+```
+
+> **ポイント**: フロントエンドのバリデーションはUXのため（ユーザーに即座にフィードバック）。
+> セキュリティ上はバックエンド（API側）のチェックが本体。
+> フロントエンドは簡単にバイパスできるので、必ず両方に入れる。
+
+---
+
+### 対策2: 同一選手レビュー回数制限（同じ選手に2回まで）
+
+**何をするか**: 同じIPアドレスから同じ選手へのレビューを**2回まで**に制限する。
+
+**なぜこの方式か**:
+- ユーザーは1回の訪問で複数の選手をレビューしたい場合がある
+  （例: レイカーズファンが全選手をまとめてレビュー）
+- グローバルな「1時間5回」制限だと、5人目以降の選手がレビューできなくなる
+- 「同じ選手に2回まで」なら何人でもレビューでき、かつ1回は修正もできる
+- 同じ選手に何十件もスパムされるのは防げる
+
+**選手レビューの場合**: `IP + playerId` の組み合わせで2回まで
+**試合レビューの場合**: `IP + gameId + playerId` の組み合わせで2回まで
+
+#### 変更箇所
+
+1. `lib/utils/rate-limit.ts` — 同一選手チェック関数を新規追加
+
+```typescript
+/**
+ * 同一選手レビュー回数制限
+ *
+ * 同じIPから同じ選手（または同じ試合の同じ選手）へのレビューを制限する。
+ * 制限がない場合、悪意のあるユーザーが1人の選手に何十件ものスパムレビューを投稿できてしまう。
+ *
+ * keyの例:
+ * - 選手レビュー: "192.168.1.1:player:lebron-james"
+ * - 試合レビュー: "192.168.1.1:game:game123:player:lebron-james"
+ */
+const playerReviewCounts = new Map<string, { count: number; firstReviewAt: number }>();
+
+const PLAYER_REVIEW_MAX = 2; // 同じ選手へのレビューは2回まで
+
+export function checkPlayerReviewLimit(
+  ip: string,
+  playerId: string,
+  gameId?: string
+): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+
+  // 古いエントリを削除（24時間以上前のもの）
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  for (const [k, v] of playerReviewCounts.entries()) {
+    if (now - v.firstReviewAt > oneDayMs) playerReviewCounts.delete(k);
+  }
+
+  // キーを生成
+  const key = gameId
+    ? `${ip}:game:${gameId}:player:${playerId}`
+    : `${ip}:player:${playerId}`;
+
+  const entry = playerReviewCounts.get(key);
+
+  if (!entry) {
+    playerReviewCounts.set(key, { count: 1, firstReviewAt: now });
+    return { allowed: true, remaining: PLAYER_REVIEW_MAX - 1 };
+  }
+
+  if (entry.count >= PLAYER_REVIEW_MAX) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  entry.count++;
+  return { allowed: true, remaining: PLAYER_REVIEW_MAX - entry.count };
+}
+```
+
+2. `app/api/reviews/route.ts` — 同一選手チェックを追加
+
+```typescript
+import { checkPlayerReviewLimit } from '@/lib/utils/rate-limit';
+
+// 既存のレート制限チェックの後に追加
+const playerLimit = checkPlayerReviewLimit(ip, playerId);
+if (!playerLimit.allowed) {
+  return NextResponse.json(
+    { message: 'この選手へのレビューは2回までです' },
+    { status: 429 }
+  );
+}
+```
+
+3. `app/api/games/[gameId]/reviews/route.ts` — 同一選手チェックを追加
+
+```typescript
+import { checkPlayerReviewLimit } from '@/lib/utils/rate-limit';
+
+// レート制限チェックの後に追加
+const playerLimit = checkPlayerReviewLimit(ip, body.playerId, gameId);
+if (!playerLimit.allowed) {
+  return NextResponse.json(
+    { error: 'この試合でのこの選手へのレビューは2回までです' },
+    { status: 429 }
+  );
+}
+```
+
+#### フロントエンド: 確認チェックボックスの追加
+
+**目的**: ユーザーに「同じ選手へのレビューは一度きり」と伝え、投稿前に内容を確認してもらう。
+技術的には2回まで許可しているが、ユーザーには「1回だけ」と案内する。
+こうすることで慎重に投稿してもらいつつ、万が一間違えても1回は修正の余地がある。
+
+**変更ファイル**:
+- `components/GameReviewForm.tsx`（試合レビュー）
+- `components/ReviewForm.tsx`（選手レビュー）※存在する場合
+
+**実装内容**:
+
+1. Zodスキーマに確認チェックボックスのフィールドを追加
+
+```typescript
+const reviewSchema = z.object({
+  comment: z.string()
+    .min(10, 'コメントは10文字以上で入力してください')
+    .max(500, 'コメントは500文字以内で入力してください'),
+  scores: z.record(z.string(), z.enum(['S', 'A', 'B', 'C', 'D', 'E', 'F'])),
+  userName: z.string().optional(),
+  confirmed: z.literal(true, { message: '投稿前に確認チェックを入れてください' }),
+});
+```
+
+2. 送信ボタンの上に確認チェックボックスを配置
+
+```tsx
+{/* 確認チェックボックス */}
+<div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+  <label className="flex items-start gap-3 cursor-pointer">
+    <input
+      type="checkbox"
+      {...register('confirmed')}
+      className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+    />
+    <span className="text-sm text-gray-700">
+      同じ選手へのレビューは<strong>一度のみ</strong>投稿できます。
+      内容に間違いがないことを確認しました。
+    </span>
+  </label>
+  {errors.confirmed && (
+    <p className="mt-2 text-sm text-red-600">
+      {errors.confirmed.message as string}
+    </p>
+  )}
+</div>
+```
+
+3. 送信ボタンを `confirmed` の状態で制御（任意：チェックなしでも送信不可にする追加UX）
+
+```tsx
+<button
+  type="submit"
+  disabled={isSubmitting || !watch('confirmed')}
+  className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+>
+  {isSubmitting ? '投稿中...' : 'レビューを投稿'}
+</button>
+```
+
+> **ポイント**: `confirmed` フィールドはAPIには送信しない（フロントエンドのみのUXフィールド）。
+> `onSubmit` 内で `data.confirmed` を除外してからAPIに送信すること。
+> Zodの `z.literal(true)` により、チェックが入っていない状態ではフォーム送信が通らない。
+
+---
+
+### 対策3: グローバル連投制限（1時間に50回まで）
+
+**何をするか**: 同じIPからの全レビュー合計を**1時間に50回まで**に制限する。
+
+**なぜ必要か**:
+- 対策2だけだと、ボットが全選手に1件ずつスパムを投稿するのは防げない
+- 選手が200人いれば200件のスパムが通ってしまう
+- 1時間50回の上限があれば、それ以上のボット攻撃を止められる
+
+**なぜ50回か**:
+- 1試合に出場する選手は両チーム合わせて約26人。十分レビューできる
+- 複数の試合を連続でレビューしても余裕がある
+- ボットの大量投稿（数百〜数千件）は確実にブロックできる
+
+#### 変更箇所
+
+1. `lib/utils/rate-limit.ts` — 既存の定数を変更
+
+```typescript
+// 変更前
+const RATE_LIMIT_WINDOW = 60 * 1000;       // 1分
+const RATE_LIMIT_MAX_ATTEMPTS = 2;          // 2回
+
+// 変更後
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000;  // 1時間（60分 × 60秒 × 1000ミリ秒）
+const RATE_LIMIT_MAX_ATTEMPTS = 50;         // 50回
+```
+
+2. `app/api/games/[gameId]/reviews/route.ts` — **グローバルレート制限を追加**
+
+```typescript
+import { checkRateLimit } from '@/lib/utils/rate-limit';
+
+// POSTハンドラ内の先頭付近に追加
+const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+  || request.headers.get('x-real-ip')
+  || 'unknown';
+const rateLimitResult = checkRateLimit(ip);
+if (!rateLimitResult.allowed) {
+  return NextResponse.json(
+    { error: '投稿回数の制限に達しました。しばらく待ってから再試行してください。' },
+    { status: 429 }
+  );
+}
+```
+
+> **メモリベースの限界**: 現在はサーバーのメモリ（変数）にIPと回数を保存している。
+> サーバーが再起動されるとリセットされる。将来的にはVercel KVやRedisに移行すべきだが、
+> 無料で始められるので今はこのままでOK。
+
+---
+
+### 対策4: 重複コメント検出
+
+**何をするか**: 過去1時間以内に同じIPから同じ内容のコメントが投稿されていたら拒否する。
+
+**仕組み**:
+1. レビュー投稿時に「IPアドレス + コメントのハッシュ値」をメモリに保存
+2. 新しい投稿が来たら、同じハッシュがあるかチェック
+3. あれば「同じ内容です」と拒否
+
+#### 変更箇所
+
+1. `lib/utils/rate-limit.ts` — 重複チェック関数を追加
+
+```typescript
+/**
+ * 重複コメント検出
+ *
+ * コメントの内容をハッシュ化（短い文字列に変換）し、
+ * 同じIPから同じハッシュの投稿がないかチェックする。
+ *
+ * ハッシュ化する理由: コメント全文を保存するとメモリを消費するため、
+ * 短い固定長の文字列に変換して比較する。
+ */
+const recentComments = new Map<string, number>(); // key: "IP:ハッシュ", value: 投稿時刻
+
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0; // 32bit整数に変換
+  }
+  return hash.toString(36); // 36進数の短い文字列にする
+}
+
+export function checkDuplicateComment(ip: string, comment: string): boolean {
+  const key = `${ip}:${simpleHash(comment.trim())}`;
+  const now = Date.now();
+  const oneHour = 60 * 60 * 1000;
+
+  // 古いエントリを削除
+  for (const [k, time] of recentComments.entries()) {
+    if (now - time > oneHour) recentComments.delete(k);
+  }
+
+  if (recentComments.has(key)) {
+    return true; // 重複あり
+  }
+
+  recentComments.set(key, now);
+  return false; // 重複なし
+}
+```
+
+2. `app/api/reviews/route.ts` — 重複チェックを追加
+3. `app/api/games/[gameId]/reviews/route.ts` — 重複チェックを追加
+
+```typescript
+import { checkDuplicateComment } from '@/lib/utils/rate-limit';
+
+// レート制限チェックの後に追加
+if (checkDuplicateComment(ip, body.comment)) {
+  return NextResponse.json(
+    { error: '同じ内容のコメントが既に投稿されています' },
+    { status: 400 }
+  );
+}
+```
+
+---
+
+## 各APIでのチェック順序
+
+リクエストが来たら以下の順番でチェックする（早い段階で拒否するほど効率的）:
+
+```
+1. グローバルレート制限（1時間50回）  ← ボットの大量投稿を最初にブロック
+2. 同一選手レビュー制限（2回まで）    ← 特定選手へのスパムをブロック
+3. コメント文字数チェック（10-500文字）← 不正なデータを拒否
+4. 重複コメント検出                   ← コピペスパムを拒否
+5. reCAPTCHA検証（既存、要修正）      ← ボット判定
+6. レビュー保存処理                   ← ここまで来たら正常な投稿
+```
+
+## 対策まとめ
+
+| 対策 | 何を防ぐか | 制限値 |
+|---|---|---|
+| 文字数制限 | 巨大コメントによるDB圧迫 | 10〜500文字 |
+| 同一選手制限 | 特定選手への集中スパム | 同じIP+選手で2回まで |
+| グローバル制限 | ボットによる大量投稿 | 同じIPで1時間50回まで |
+| 重複検出 | コピペスパム | 同じ内容は1時間に1回まで |
+
+## 実装の優先順位
+
+1. **対策1（文字数制限）** → 最も簡単。試合レビューAPIに数行追加するだけ
+2. **対策2（同一選手制限）** → 新しい関数を作成 + 両方のAPIに追加
+3. **対策3（グローバル制限）** → 定数変更 + 試合レビューAPIにimport追加
+4. **対策4（重複検出）** → 新しい関数を作成 + 両方のAPIに追加
+
+## テスト方法
+
+1. 501文字のコメントで投稿 → 「500文字以内で」エラーが出ることを確認
+2. 同じ選手に3回投稿 → 3回目で「この選手へのレビューは2回までです」エラーが出ることを確認
+3. 51回連続で異なる選手に投稿 → 51回目で「投稿回数の制限に達しました」エラーが出ることを確認
+4. 同じコメントを2回投稿 → 2回目で「同じ内容のコメントが既に投稿されています」エラーが出ることを確認
+
+## 備考: reCAPTCHA v3の問題
+
+現在の`app/api/reviews/route.ts`では、reCAPTCHA検証が失敗しても投稿を続行している（52-56行目）。
+これは実質的にreCAPTCHAが**無効化**されている状態。
+スパム対策の実装後に、reCAPTCHAのスコアが低い場合は拒否するよう修正すべき。

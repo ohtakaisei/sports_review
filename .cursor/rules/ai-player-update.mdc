@@ -31,8 +31,9 @@ globs:
 | `position` | `string` | ポジション（PG/SG/SF/PF/C） |
 | `number` | `number` | 背番号 |
 | `stats` | `PlayerStats` | シーズンスタッツ（毎試合変動） |
-| `contractAmount` | `number` | 契約金額（契約更新で変動） |
+| `contractAmount` | `number` | 今年の年俸（ドル） |
 | `contractYears` | `number` | 契約年数 |
+| `contractTotalAmount` | `number` | 契約合計額（ドル、全年数合計） |
 
 #### 不変のフィールド（AI更新対象外）
 - `height, weight, birthDate, country` — 身体情報・生年月日は変わらない
@@ -70,7 +71,7 @@ interface PlayerStats {
 | 情報ソース | URL フィールド | 取得する情報 | 必須/任意 |
 |---|---|---|---|
 | ESPN | `espnUrl` | team, position, number, stats | 必須 |
-| 契約情報サイト（Spotrac等） | `contractUrl` | contractAmount, contractYears | 任意 |
+| 契約情報サイト（Spotrac等） | `contractUrl` | contractAmount, contractYears, contractTotalAmount | 任意 |
 
 - `contractUrl` が未設定でもAI更新は動作する（契約情報はスキップ）
 - 両URLを設定すると `Promise.all` で並行fetchし、テキストを合体して1回のGPT呼び出しで処理
@@ -168,6 +169,32 @@ interface PlayerStats {
 
 `/setup` の選手編集モーダルに「AI更新用URL」セクションとして以下の2フィールドを配置:
 - **ESPN URL**: スタッツ・チーム情報用（`espnUrl`）
-- **契約情報URL**: 年俸・契約年数用（`contractUrl`）
+- **契約情報URL**: 年俸・契約年数・合計額用（`contractUrl`）
 
 グレーの枠で囲み、両フィールドをグループ化して表示。
+
+## 契約情報の表示フォーマット
+
+### 表示形式
+
+```
+$47,607,350/年 (2年$95.2M)
+```
+
+- 左側: `contractAmount`（今年の年俸）を `$XX,XXX,XXX/年` で表示
+- 右側: `contractYears` と `contractTotalAmount` を `(N年$XX.XM)` で表示
+
+### データモデル
+
+| フィールド | 型 | 説明 | 例 |
+|---|---|---|---|
+| `contractAmount` | `number` | 今年の年俸（ドル） | 47607350 |
+| `contractYears` | `number` | 契約年数 | 2 |
+| `contractTotalAmount` | `number` | 契約合計額（全年数のドル合計） | 95214700 |
+
+### AI取得時の注意
+
+- Spotrac等の契約ページには「今年の年俸」と「契約合計額」が別々に記載されている
+- GPTプロンプトで `contractAmount`（今年の年俸）と `contractTotalAmount`（合計額）を明確に区別して取得
+- 合計額が見つからない場合: `contractAmount × contractYears` で概算しない（nullを返す）
+- トークン節約: 契約情報の抽出指示はプロンプト内で簡潔に記述

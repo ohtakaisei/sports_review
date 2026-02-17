@@ -8,7 +8,7 @@ import ReviewCard from '@/components/ReviewCard';
 import ReviewForm from '@/components/ReviewForm';
 import Pagination from '@/components/Pagination';
 import Link from 'next/link';
-import { getPlayerReviews } from '@/lib/firebase/firestore';
+import { getPlayer, getPlayerReviews } from '@/lib/firebase/firestore';
 
 const REVIEWS_PER_PAGE = 6;
 
@@ -63,15 +63,20 @@ export default function PlayerDetailClient({ initialPlayer, initialReviews, play
     return age;
   };
 
-  // Refetch reviews only (since player update is handled via props mostly, or we could reload page)
-  const refreshReviews = async () => {
+  // レビュー投稿後にクライアント側stateを直接更新
+  // ISR化によりwindow.location.reload()はキャッシュを返すため、Firestoreから直接再取得する
+  const refreshAfterReview = async () => {
       try {
-          const newReviews = await getPlayerReviews(playerId);
+          const [newReviews, updatedPlayer] = await Promise.all([
+              getPlayerReviews(playerId),
+              getPlayer(playerId),
+          ]);
           setReviews(newReviews);
-          // Also could refresh player to get new stats if we had a fetchPlayer function exposed or just reload
-          window.location.reload(); 
+          if (updatedPlayer) {
+              setPlayer(updatedPlayer);
+          }
       } catch (e) {
-          console.error(e);
+          console.error('レビュー後のデータ更新に失敗:', e);
       }
   }
 
@@ -213,10 +218,9 @@ export default function PlayerDetailClient({ initialPlayer, initialReviews, play
                          <div className="col-span-2 sm:col-span-4 border-t border-slate-700 pt-4 mt-2">
                             <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">契約</div>
                             <div className="font-bold text-xl text-green-400 font-mono">
-                                {player.contractAmount 
-                                    ? `$${player.contractAmount.toLocaleString()}` 
+                                {player.contractAmount
+                                    ? <>{`$${player.contractAmount.toLocaleString()}/年`}{player.contractYears && player.contractTotalAmount && player.contractTotalAmount > player.contractAmount && <span className="text-sm text-slate-400 ml-2">({player.contractYears}年{`$${(player.contractTotalAmount / 1000000).toFixed(1)}M`})</span>}{player.contractYears && (!player.contractTotalAmount || player.contractTotalAmount <= player.contractAmount) && <span className="text-sm text-slate-400 ml-2">({player.contractYears}年)</span>}</>
                                     : '-'}
-                                {player.contractYears && <span className="text-sm text-slate-400 ml-2">/ {player.contractYears} 年</span>}
                             </div>
                         </div>
                     </div>
@@ -469,8 +473,7 @@ export default function PlayerDetailClient({ initialPlayer, initialReviews, play
                             playerName={player.name}
                             onSuccess={() => {
                                 setShowReviewForm(false);
-                                // Refresh whole page to get new server side data and client state
-                                window.location.reload();
+                                refreshAfterReview();
                             }}
                         />
                     </div>

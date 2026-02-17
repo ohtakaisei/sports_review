@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getGames } from '@/lib/firebase/firestore';
 import { createGameAdmin, checkGameExistsAdmin } from '@/lib/firebase/admin-firestore';
 import { Game, GamePlayerStats } from '@/lib/types';
+import { checkAdminEnabled } from '@/lib/utils/admin-guard';
 
 interface OpenAIResponse {
   choices?: { message?: { content?: string } }[];
@@ -50,6 +51,9 @@ interface PlayerDataRaw {
  * - OPENAI_API_KEY: OpenAI APIキー
  */
 export async function POST(request: NextRequest) {
+  const guardResponse = checkAdminEnabled();
+  if (guardResponse) return guardResponse;
+
   try {
     const body = await request.json();
     const { date, homeTeam, awayTeam } = body;

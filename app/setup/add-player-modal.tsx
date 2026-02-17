@@ -31,6 +31,7 @@ export default function AddPlayerModal({
     stats: undefined,
     contractAmount: undefined,
     contractYears: undefined,
+    contractTotalAmount: undefined,
     shopUrl: undefined,
   });
 
@@ -312,6 +313,16 @@ export default function AddPlayerModal({
                   value={formData.contractYears || ''}
                   onChange={(e) => setFormData({ ...formData, contractYears: e.target.value ? Number(e.target.value) : undefined })}
                   placeholder="例: 2"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">契約合計額（ドル）</label>
+                <input
+                  type="number"
+                  value={formData.contractTotalAmount || ''}
+                  onChange={(e) => setFormData({ ...formData, contractTotalAmount: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="例: 95214700"
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>

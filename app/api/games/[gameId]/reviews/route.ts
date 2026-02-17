@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createGameReviewAdmin } from '@/lib/firebase/admin-firestore';
 import { SCORE_MAP, ScoreGrade } from '@/lib/types';
+import { checkRateLimit, checkPlayerReviewLimit, checkDuplicateComment } from '@/lib/utils/rate-limit';
 
 /**
  * 試合レビューを投稿するAPI（Admin SDK使用）
@@ -13,10 +14,49 @@ export async function POST(
     const body = await request.json();
     const { gameId } = await params;
 
+    // IPアドレスの取得
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || request.headers.get('x-real-ip')
+      || 'unknown';
+
+    // 1. グローバルレート制限（1時間50回）
+    const rateLimitResult = checkRateLimit(ip);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: '投稿回数の制限に達しました。しばらく待ってから再試行してください。' },
+        { status: 429 }
+      );
+    }
+
     // バリデーション
     if (!body.playerId || !body.playerName || !body.comment || body.overallGrade === undefined) {
       return NextResponse.json(
         { error: '必須フィールドが不足しています（playerId, playerName, comment, overallGrade）' },
+        { status: 400 }
+      );
+    }
+
+    // 2. 同一選手レビュー制限（同じ試合の同じ選手に2回まで）
+    const playerLimit = checkPlayerReviewLimit(ip, body.playerId, gameId);
+    if (!playerLimit.allowed) {
+      return NextResponse.json(
+        { error: 'この試合でのこの選手へのレビューは2回までです' },
+        { status: 429 }
+      );
+    }
+
+    // 3. コメント文字数チェック（10-500文字）
+    if (!body.comment || typeof body.comment !== 'string' || body.comment.length < 10 || body.comment.length > 500) {
+      return NextResponse.json(
+        { error: 'コメントは10文字以上500文字以内で入力してください' },
+        { status: 400 }
+      );
+    }
+
+    // 4. 重複コメント検出
+    if (checkDuplicateComment(ip, body.comment)) {
+      return NextResponse.json(
+        { error: '同じ内容のコメントが既に投稿されています' },
         { status: 400 }
       );
     }

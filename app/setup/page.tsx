@@ -219,6 +219,10 @@ export default function SetupPage() {
   const [aiUpdatingPlayer, setAiUpdatingPlayer] = useState<string | null>(null);
   const [aiUpdateResult, setAiUpdateResult] = useState<{ playerId: string; success: boolean; message: string; updatedFields?: string[] } | null>(null);
 
+  // 一括AI更新用のstate
+  const [bulkAiUpdating, setBulkAiUpdating] = useState(false);
+  const [bulkAiProgress, setBulkAiProgress] = useState<{ current: number; total: number; results: { playerId: string; name: string; success: boolean; message: string }[] }>({ current: 0, total: 0, results: [] });
+
   // ページネーション用のstate
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12; // 1ページあたり12人表示
@@ -461,6 +465,7 @@ export default function SetupPage() {
             stats: player.stats || undefined,
             contractAmount: player.contractAmount || undefined,
             contractYears: player.contractYears || undefined,
+            contractTotalAmount: player.contractTotalAmount || undefined,
             shopUrl: player.shopUrl || undefined
           };
 
@@ -616,6 +621,47 @@ export default function SetupPage() {
     }
   };
 
+  // 一括AI更新
+  const handleBulkAiUpdate = async () => {
+    const targetPlayers = players.filter(p => p.espnUrl);
+    if (targetPlayers.length === 0) {
+      alert('ESPN URLが設定されている選手がいません。');
+      return;
+    }
+
+    setBulkAiUpdating(true);
+    setBulkAiProgress({ current: 0, total: targetPlayers.length, results: [] });
+
+    const results: { playerId: string; name: string; success: boolean; message: string }[] = [];
+
+    for (let i = 0; i < targetPlayers.length; i++) {
+      const player = targetPlayers[i];
+      try {
+        const response = await fetch('/api/players/ai-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerId: player.playerId }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          results.push({ playerId: player.playerId, name: player.name, success: false, message: data.error || 'AI更新に失敗しました' });
+        } else {
+          results.push({ playerId: player.playerId, name: player.name, success: true, message: data.message || '更新完了' });
+        }
+      } catch (err) {
+        results.push({ playerId: player.playerId, name: player.name, success: false, message: `エラー: ${err instanceof Error ? err.message : String(err)}` });
+      }
+
+      setBulkAiProgress({ current: i + 1, total: targetPlayers.length, results: [...results] });
+    }
+
+    // 全完了後に選手一覧を再取得
+    await fetchPlayers();
+    setBulkAiUpdating(false);
+  };
+
   // 選手を新規追加
   const handleAddPlayer = async (newPlayer: Omit<Player, 'playerId'> & { playerId: string }) => {
     setLoading(true);
@@ -649,6 +695,7 @@ export default function SetupPage() {
         stats: newPlayer.stats || undefined,
         contractAmount: newPlayer.contractAmount || undefined,
         contractYears: newPlayer.contractYears || undefined,
+        contractTotalAmount: newPlayer.contractTotalAmount || undefined,
         shopUrl: newPlayer.shopUrl || undefined,
       };
 
@@ -1015,6 +1062,80 @@ service cloud.firestore {
                 </div>
               </div>
             </div>
+
+            {/* 一括AI更新 */}
+            {!loadingPlayers && players.length > 0 && (
+              <div className="card p-4">
+                {bulkAiUpdating ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        一括AI更新中... ({bulkAiProgress.current}/{bulkAiProgress.total})
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {bulkAiProgress.total > 0 ? Math.round((bulkAiProgress.current / bulkAiProgress.total) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-gray-200">
+                      <div
+                        className="h-2 rounded-full bg-emerald-500 transition-all duration-300"
+                        style={{ width: `${bulkAiProgress.total > 0 ? (bulkAiProgress.current / bulkAiProgress.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                    {bulkAiProgress.current > 0 && bulkAiProgress.results.length > 0 && (
+                      <p className="text-xs text-gray-500">
+                        最新: {bulkAiProgress.results[bulkAiProgress.results.length - 1].name} - {bulkAiProgress.results[bulkAiProgress.results.length - 1].success ? '成功' : '失敗'}
+                      </p>
+                    )}
+                  </div>
+                ) : bulkAiProgress.results.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-gray-900">一括AI更新 完了</span>
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                          成功 {bulkAiProgress.results.filter(r => r.success).length}
+                        </span>
+                        {bulkAiProgress.results.some(r => !r.success) && (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                            失敗 {bulkAiProgress.results.filter(r => !r.success).length}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setBulkAiProgress({ current: 0, total: 0, results: [] })}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        閉じる
+                      </button>
+                    </div>
+                    {bulkAiProgress.results.some(r => !r.success) && (
+                      <div className="rounded-md bg-red-50 p-2">
+                        <p className="mb-1 text-xs font-medium text-red-800">失敗した選手:</p>
+                        <ul className="space-y-0.5 text-xs text-red-700">
+                          {bulkAiProgress.results.filter(r => !r.success).map(r => (
+                            <li key={r.playerId}>- {r.name}: {r.message}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      ESPN URL設定済み: <span className="font-medium text-gray-900">{players.filter(p => p.espnUrl).length}</span> / {players.length} 名
+                    </div>
+                    <button
+                      onClick={handleBulkAiUpdate}
+                      disabled={players.filter(p => p.espnUrl).length === 0}
+                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      一括AI更新 ({players.filter(p => p.espnUrl).length}選手)
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 検索・フィルター */}
             {!loadingPlayers && players.length > 0 && (
@@ -2143,6 +2264,17 @@ function EditPlayerModal({
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">例: 4年契約</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">契約合計額（ドル）</label>
+                <input
+                  type="number"
+                  value={formData.contractTotalAmount || ''}
+                  onChange={(e) => setFormData({ ...formData, contractTotalAmount: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="例: 68000000"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">全年数の合計額（例: 6800万ドル）</p>
               </div>
             </div>
 

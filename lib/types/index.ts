@@ -59,8 +59,9 @@ export interface Player {
   draftRound?: number; // ドラフトラウンド
   draftPick?: number; // ドラフト順位
   stats?: PlayerStats; // スタッツ情報
-  contractAmount?: number; // 契約金額（年俸、ドル）
+  contractAmount?: number; // 今年の年俸（ドル）
   contractYears?: number; // 契約年数
+  contractTotalAmount?: number; // 契約合計額（全年数のドル合計）
   shopUrl?: string; // グッズ購入URL（任意）
   espnUrl?: string; // ESPN選手ページURL（AI更新で使用）
   contractUrl?: string; // 契約情報ページURL（AI更新で使用、Spotrac等）

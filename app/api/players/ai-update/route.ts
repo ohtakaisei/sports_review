@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlayerAdmin, updatePlayerAdmin } from '@/lib/firebase/admin-firestore';
 import { PlayerStats } from '@/lib/types';
+import { checkAdminEnabled } from '@/lib/utils/admin-guard';
 
 const FETCH_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -18,6 +19,9 @@ const FETCH_HEADERS = {
  * 両サイトを並行fetchし、テキストを合体して1回のGPT呼び出しで処理する。
  */
 export async function POST(request: NextRequest) {
+  const guardResponse = checkAdminEnabled();
+  if (guardResponse) return guardResponse;
+
   try {
     const body = await request.json();
     const { playerId } = body;
@@ -113,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     const contractInstruction = contractResult
-      ? 'contractAmountとcontractYearsは「契約情報テキスト」から抽出。'
+      ? 'contractAmount(今シーズンの年俸1年分),contractYears(契約全体の年数),contractTotalAmount(契約全体の合計金額=全年数の合計)は「契約情報テキスト」から抽出。contractTotalAmountはcontractAmountより大きいはず。不明ならnull。'
       : '';
 
     const userPrompt = `以下のテキストからNBA選手の変動情報を抽出しJSON形式で返してください。
@@ -131,8 +135,9 @@ JSON形式:
     "stl": 平均スティール, "blk": 平均ブロック, "tov": 平均ターンオーバー,
     "mpg": 平均出場時間(分), "gp": 出場試合数, "season": "例:2024-25"
   },
-  "contractAmount": 年俸(ドル,数値),
-  "contractYears": 契約年数
+  "contractAmount": 今シーズンの年俸(1年分のドル,数値),
+  "contractYears": 契約全体の年数,
+  "contractTotalAmount": 契約全体の合計額(全年数を合算したドル,数値。年俸×年数ではなく実際の合計)
 }
 ルール: テキストにある情報のみ。見つからない項目はnull。JSONのみ返答。team/position/number/statsは「ESPNテキスト」から抽出。${contractInstruction}`;
 
@@ -235,6 +240,17 @@ JSON形式:
     if (parsedData.contractYears != null) {
       updateData.contractYears = parsedData.contractYears;
       updatedFields.push('contractYears');
+    }
+    if (parsedData.contractTotalAmount != null) {
+      // バリデーション: 合計額が年俸と同じ or 年俸以下なら誤抽出と判断
+      const annualSalary = parsedData.contractAmount ?? player.contractAmount;
+      if (annualSalary && parsedData.contractTotalAmount <= annualSalary) {
+        console.log('[AI Update] contractTotalAmount rejected (same or less than annual salary):', parsedData.contractTotalAmount);
+        updateData.contractTotalAmount = null;
+      } else {
+        updateData.contractTotalAmount = parsedData.contractTotalAmount;
+      }
+      updatedFields.push('contractTotalAmount');
     }
 
     if (updatedFields.length === 0) {

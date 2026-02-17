@@ -1,0 +1,255 @@
+---
+description: 管理APIの保護方針（ADMIN_ENABLED環境変数方式）の設計と実装手順
+globs:
+  - app/api/admin/**
+  - app/api/players/**
+  - app/api/games/**
+  - app/setup/**
+---
+
+# 管理APIの保護（ADMIN_ENABLED環境変数方式）
+
+## 背景（なぜ必要か）
+
+### そもそもの問題
+
+このサイトには「一般ユーザー向けの機能」と「管理者向けの機能」がある。
+
+- **一般ユーザー**: 選手のページを見る、レビューを投稿する
+- **管理者（あなた）**: 選手の追加・編集・削除、試合の登録、AI機能の使用
+
+管理者向けの機能はAPI Route（サーバー側のプログラム）で動いている。
+問題は、このAPI Routeが**本番サイト上で誰でもアクセスできる状態**だったこと。
+
+### ブラウザとAPIの違い
+
+ブラウザでURLを開くと「GET」というリクエストが送られる。
+でもプログラマーは `curl` というツールを使って、好きなメソッドで直接APIを叩ける。
+
+```
+【ブラウザ】
+https://your-site.vercel.app/api/players を開く
+→ GETリクエストが送られる
+→ 管理機能は使えない（POST/PUT/DELETEではないから）
+
+【curl（コマンドラインツール）】
+curl -X DELETE "https://your-site.vercel.app/api/players?playerId=lebron-james"
+→ DELETEリクエストが送られる
+→ 選手が削除されてしまう！！
+```
+
+つまり、ブラウザからは見えなくても、プログラムから直接叩かれると危険。
+
+## 解決策: 「本番では管理APIを完全に無効化する」
+
+### 基本的な考え方
+
+```
+【今までの考え方（複雑）】
+本番サイトでも管理機能を使えるようにして、パスワードやトークンで保護する
+→ セッショントークンの仕組みが必要、実装が大変
+
+【新しい考え方（シンプル）】
+本番サイトでは管理機能を丸ごとOFFにする。
+管理作業はローカル（自分のPC）でやる。
+ローカルと本番は同じFirestoreを見ているので、ローカルで編集した内容は本番にも反映される。
+```
+
+### なぜこれで大丈夫なのか
+
+```
+[あなたのPC (localhost:3000)]
+   │
+   ├─ .env.local に ADMIN_ENABLED=true を設定
+   ├─ 管理ページ（/setup）が使える
+   ├─ 選手の追加・編集・削除ができる
+   ├─ 試合の登録ができる
+   ├─ AI機能が使える
+   │
+   └─ すべての変更は Firestore（データベース）に保存される
+                                    ↑
+                            同じデータベース
+                                    ↓
+[本番サイト (your-site.vercel.app)]
+   │
+   ├─ ADMIN_ENABLED が設定されていない
+   ├─ 管理ページ（/setup）→ ログイン不可（ADMIN_PASSWORDもない）
+   ├─ 管理API → すべて「403 管理機能は無効です」を返す
+   ├─ curl で叩かれても拒否
+   │
+   └─ でもFirestoreのデータは見える → ローカルで追加した選手や試合が表示される
+```
+
+要するに:
+- **本番サイト** = 「見る」「レビューする」だけの読み取り専用（＋レビュー投稿）
+- **ローカル** = 管理者として編集する場所
+
+## 本番で無効化するもの一覧
+
+### 本番に設定しない環境変数
+
+| 環境変数 | 理由 |
+|---|---|
+| `ADMIN_ENABLED` | 管理APIを無効化するため |
+| `ADMIN_PASSWORD` | 管理ページにログインさせないため |
+| `OPENAI_API_KEY` | AI機能を使わせないため（コスト防止） |
+
+### 本番に設定が必要な環境変数（今まで通り）
+
+| 環境変数 | 理由 |
+|---|---|
+| `FIREBASE_*` 系 | データの読み取りに必要 |
+| `NEXT_PUBLIC_FIREBASE_*` 系 | クライアント側のFirebase接続に必要 |
+| `RECAPTCHA_SECRET_KEY` | レビュー投稿時のボット判定に必要 |
+| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHAのフロントエンド用 |
+
+## 保護が必要なAPI（管理者専用）
+
+以下のAPIは `ADMIN_ENABLED` がないとき 403 を返すようにする。
+
+| エンドポイント | メソッド | 機能 |
+|---|---|---|
+| `/api/players` | POST | 選手追加 |
+| `/api/players` | PUT | 選手編集 |
+| `/api/players` | DELETE | 選手削除 |
+| `/api/players/ai-update` | POST | AI選手情報更新 |
+| `/api/games` | POST | 試合追加 |
+| `/api/games/[gameId]` | PUT | 試合編集 |
+| `/api/games/[gameId]` | DELETE | 試合削除 |
+| `/api/games/fetch-from-chatgpt` | POST | AI試合結果取得 |
+
+## 保護しないAPI（一般ユーザーが使う）
+
+以下のAPIはそのまま。本番でも使えるようにする。
+
+| エンドポイント | メソッド | 機能 |
+|---|---|---|
+| `/api/reviews` | POST | レビュー投稿 |
+| `/api/games/[gameId]/reviews` | POST/GET | 試合レビュー投稿・取得 |
+| `/api/players/search` | GET | 選手検索 |
+| `/api/players/metadata` | GET | 選手メタデータ取得 |
+| `/api/players` | GET | 選手一覧取得 |
+| `/api/games` | GET | 試合一覧取得 |
+
+## 実装手順
+
+### ステップ1: 共通の管理者チェック関数を作成
+
+**新規ファイル**: `lib/utils/admin-guard.ts`
+
+```typescript
+/**
+ * 管理者API保護ガード
+ *
+ * 環境変数 ADMIN_ENABLED が設定されていない場合、管理APIへのアクセスを拒否する。
+ *
+ * 仕組み:
+ * - ローカル開発時: .env.local に ADMIN_ENABLED=true を設定 → APIが使える
+ * - 本番（Vercel）: この環境変数を設定しない → APIが使えない（403エラー）
+ *
+ * なぜこれで安全か:
+ * 環境変数はサーバー側にしか存在しないので、外部から書き換えることはできない。
+ * 攻撃者がどんなリクエストを送っても、サーバーの環境変数にADMIN_ENABLEDがなければ
+ * 必ず403が返る。
+ */
+
+import { NextResponse } from 'next/server';
+
+/**
+ * 管理APIが有効かチェックし、無効なら403レスポンスを返す。
+ *
+ * 使い方:
+ * const guardResponse = checkAdminEnabled();
+ * if (guardResponse) return guardResponse; // 無効なら即座に403を返す
+ *
+ * @returns 無効の場合は403レスポンス、有効の場合はnull
+ */
+export function checkAdminEnabled(): NextResponse | null {
+  if (process.env.ADMIN_ENABLED !== 'true') {
+    return NextResponse.json(
+      { error: '管理機能は無効です' },
+      { status: 403 }
+    );
+  }
+  return null; // 有効 → 処理を続行
+}
+```
+
+### ステップ2: 各管理APIの先頭にガードを追加
+
+各ファイルのPOST/PUT/DELETEハンドラの**一番最初**にチェックを入れる。
+GETハンドラには入れない（一般ユーザーもデータを見れるようにするため）。
+
+**変更ファイルと追加するコード:**
+
+```typescript
+import { checkAdminEnabled } from '@/lib/utils/admin-guard';
+
+// POST/PUT/DELETEハンドラの最初の行に追加:
+const guardResponse = checkAdminEnabled();
+if (guardResponse) return guardResponse;
+```
+
+対象ファイル:
+1. `app/api/players/route.ts` — POST, PUT, DELETE
+2. `app/api/players/ai-update/route.ts` — POST
+3. `app/api/games/route.ts` — POST（GETは保護しない）
+4. `app/api/games/[gameId]/route.ts` — PUT, DELETE（GETは保護しない）
+5. `app/api/games/fetch-from-chatgpt/route.ts` — POST
+
+### ステップ3: ローカルの .env.local に追加
+
+```bash
+# .env.local に追加
+ADMIN_ENABLED=true
+```
+
+### ステップ4: 本番（Vercel）から不要な環境変数を削除
+
+Vercel Dashboard → Settings → Environment Variables で以下を**削除**（または設定しない）:
+- `ADMIN_ENABLED` ← 絶対に設定しない
+- `ADMIN_PASSWORD` ← もう不要
+- `OPENAI_API_KEY` ← もう不要（ローカルでのみ使用）
+
+## テスト方法
+
+### ローカル（ADMIN_ENABLED=true のとき）
+
+```bash
+# 選手追加 → 成功するはず
+curl -X POST "http://localhost:3000/api/players" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"テスト選手"}'
+```
+
+### 本番（ADMIN_ENABLED がないとき）
+
+```bash
+# 選手追加 → 403エラーが返るはず
+curl -X POST "https://your-site.vercel.app/api/players" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"テスト選手"}'
+# → { "error": "管理機能は無効です" }
+
+# 選手削除 → 403エラーが返るはず
+curl -X DELETE "https://your-site.vercel.app/api/players?playerId=test"
+# → { "error": "管理機能は無効です" }
+
+# でもレビュー投稿 → 成功するはず（保護対象外）
+```
+
+## セッショントークン方式との比較
+
+| | セッショントークン方式 | ADMIN_ENABLED方式 |
+|---|---|---|
+| 実装の複雑さ | 高い（トークン生成・保存・検証） | **低い（if文1行）** |
+| 本番で管理操作 | できる | **できない（ローカルのみ）** |
+| セキュリティ | トークン漏洩のリスクあり | **環境変数は外部から操作不可** |
+| 管理者が必要なもの | ブラウザのみ | **ローカル開発環境** |
+| OpenAI APIコスト | 本番でもかかる | **ローカルでしかかからない** |
+
+## 注意点
+
+- **ローカルでの管理作業中はFirestoreに即座に反映される**。本番サイトにもすぐ表示される。
+- ローカルで `npm run dev` を起動している間だけ管理作業ができる。
+- もし将来「スマホからも管理したい」等の要件が出たら、その時にセッショントークン方式を検討する。

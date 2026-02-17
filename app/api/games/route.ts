@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createGameAdmin, checkGameExistsAdmin } from '@/lib/firebase/admin-firestore';
 import { Game, GamePlayerStats } from '@/lib/types';
+import { checkAdminEnabled } from '@/lib/utils/admin-guard';
 
 /**
  * 試合結果を手動で登録するAPI
  * ESPNなどの情報を手動で入力して登録
  */
 export async function POST(request: NextRequest) {
+  const guardResponse = checkAdminEnabled();
+  if (guardResponse) return guardResponse;
+
   try {
     const body = await request.json();
-    
+
     // バリデーション
     if (!body.date || !body.homeTeam || !body.awayTeam) {
       return NextResponse.json(

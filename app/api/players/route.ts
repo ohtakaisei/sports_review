@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPlayerAdmin, updatePlayerAdmin, deletePlayerAdmin } from '@/lib/firebase/admin-firestore';
 import { Player } from '@/lib/types';
+import { checkAdminEnabled } from '@/lib/utils/admin-guard';
 
 /**
  * 選手を新規作成するAPI（Admin SDK使用）
  */
 export async function POST(request: NextRequest) {
+  const guardResponse = checkAdminEnabled();
+  if (guardResponse) return guardResponse;
+
   try {
     const body = await request.json();
-    
+
     // バリデーション
     if (!body.playerId || !body.name || !body.team) {
       return NextResponse.json(
@@ -42,6 +46,7 @@ export async function POST(request: NextRequest) {
       shopUrl: body.shopUrl || null,
       espnUrl: body.espnUrl || null,
       contractUrl: body.contractUrl || null,
+      contractTotalAmount: body.contractTotalAmount || null,
     };
 
     // Firestoreに保存（Admin SDK使用）
@@ -68,9 +73,12 @@ export async function POST(request: NextRequest) {
  * 選手を更新するAPI（Admin SDK使用）
  */
 export async function PUT(request: NextRequest) {
+  const guardResponse = checkAdminEnabled();
+  if (guardResponse) return guardResponse;
+
   try {
     const body = await request.json();
-    
+
     // バリデーション
     if (!body.playerId || !body.name || !body.team) {
       return NextResponse.json(
@@ -103,6 +111,7 @@ export async function PUT(request: NextRequest) {
       shopUrl: body.shopUrl || null,
       espnUrl: body.espnUrl || null,
       contractUrl: body.contractUrl || null,
+      contractTotalAmount: body.contractTotalAmount || null,
     };
 
     // Firestoreに更新（Admin SDK使用）
@@ -129,6 +138,9 @@ export async function PUT(request: NextRequest) {
  * 選手を削除するAPI（Admin SDK使用）
  */
 export async function DELETE(request: NextRequest) {
+  const guardResponse = checkAdminEnabled();
+  if (guardResponse) return guardResponse;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const playerId = searchParams.get('playerId');

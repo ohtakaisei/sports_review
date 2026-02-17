@@ -3,6 +3,9 @@ import { getPlayer, getPlayerReviews } from '@/lib/firebase/firestore';
 import PlayerDetailClient from './PlayerDetailClient';
 import { generatePlayerTitle, generatePlayerDescription, generatePlayerKeywords } from '@/lib/utils/seo';
 
+// ISR: 10分間キャッシュ（Firestoreクォータ節約のため）
+export const revalidate = 600;
+
 interface PageProps {
   params: Promise<{ playerId: string }>;
 }

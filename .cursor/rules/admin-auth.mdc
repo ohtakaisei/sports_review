@@ -1,51 +1,54 @@
 ---
-description: /setupページのパスワード保護と管理者認証の設計
+description: 管理者認証と管理機能の運用方針
 globs:
   - app/setup/**
   - app/api/admin/**
+  - lib/utils/admin-guard.ts
 ---
 
 # 管理者認証
 
-## 設定手順
+## 運用方針
 
-### 1. 環境変数を設定
+管理作業（選手・試合の追加・編集・削除、AI機能）は**ローカル環境でのみ**行う。
+本番サイト（Vercel）では管理機能を完全に無効化する。
 
-`.env.local` に追加:
+```
+ローカル (localhost:3000)     →  管理OK（ADMIN_ENABLED=true）
+本番 (your-site.vercel.app)   →  管理NG（ADMIN_ENABLEDなし → 403）
+```
+
+両方とも同じFirestoreを見ているので、ローカルでの変更は本番にも即座に反映される。
+
+詳しい設計と実装手順は `api-auth-plan.mdc` を参照。
+
+## ローカルの設定
+
+`.env.local` に以下を設定:
 
 ```bash
+ADMIN_ENABLED=true
 ADMIN_PASSWORD=your_secure_password_here
+OPENAI_API_KEY=sk-xxxxx
 ```
 
-- 最低8文字以上推奨
-- `.env.local`にのみ保存、Gitにコミットしない
-- 本番環境（Vercel）でも環境変数として設定
+## 本番（Vercel）の設定
 
-### 2. サーバー再起動
+以下の環境変数は**設定しない**（管理機能を無効化するため）:
+- `ADMIN_ENABLED`
+- `ADMIN_PASSWORD`
+- `OPENAI_API_KEY`
 
-```bash
-npm run dev
-```
+## 管理ページの使い方
 
-### 3. 動作確認
+1. ローカルで `npm run dev` を起動
+2. `http://localhost:3000/setup` にアクセス
+3. パスワードを入力してログイン
+4. 選手・試合の管理作業を行う
+5. 変更は即座にFirestoreに保存され、本番サイトにも反映される
 
-1. `/setup` にアクセス → パスワード入力画面
-2. 正しいパスワードを入力 → 管理画面が表示
-
-## 認証の仕組み
+## 管理ページの仕組み
 
 - **パスワード検証**: サーバー側（`/api/admin/verify-password`）で検証
-- **セッション管理**: 認証成功後、localStorageに認証トークンを保存
+- **セッション管理**: 認証成功後、localStorageに認証状態を保存
 - **ログアウト**: ヘッダーの「ログアウト」ボタン
-
-## 現在の制限事項
-
-- **localStorageベースの認証**: 簡易的な実装。より強固なセキュリティが必要な場合は以下を検討:
-  - JWT認証
-  - IP制限
-  - 2要素認証
-  - パスワード試行回数の制限
-
-## Vercelでの設定
-
-Vercel Dashboard → Settings → Environment Variables → `ADMIN_PASSWORD` を追加 → 再デプロイ

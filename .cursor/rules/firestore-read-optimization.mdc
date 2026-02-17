@@ -1,0 +1,257 @@
+---
+description: Firestore無料枠を守るための読み取り最適化（metadataキャッシュ・選手詳細ISR化）
+globs:
+  - app/api/players/metadata/**
+  - app/players/[playerId]/**
+  - app/page.tsx
+  - app/HomePageClient.tsx
+---
+
+# Firestore読み取り最適化
+
+## 背景（なぜ必要か）
+
+Firestoreの無料枠（Spark）は **50,000読み取り/日**。
+現状の実装では、閲覧ユーザーが1,000人/日になると約105,000読み取りとなり、無料枠の**約2倍**を超える。
+
+### 現状の読み取りパターン（選手50名の場合）
+
+| ページ | 操作 | 1ユーザーあたりの読み取り | キャッシュ |
+|--------|------|--------------------------|-----------|
+| トップ `/` | `getPopularPlayers(12)` | 12 docs | ISR 5分 |
+| トップ `/` | `/api/players/metadata` → `getPlayers()` | **50 docs（全選手）** | **なし** |
+| 選手詳細 `/players/[id]` | `getPlayer()` × 2 + `getPlayerReviews(20)` | 最大22 docs | **なし** |
+| 試合詳細 `/games/[id]` | ゲーム + 両チーム選手 + 全選手レビュー | 50〜70 docs | なし |
+
+### 1,000人/日の試算
+
+| 操作 | 計算 | 読み取り数 |
+|------|------|-----------|
+| トップ（ISR部分） | 288回/日 × 12 docs | ~3,500 |
+| トップ（metadata） | 1,000人 × 50 docs | **50,000** |
+| 選手詳細 | 1,000人 × 22 docs | 22,000 |
+| 試合詳細（半数） | 500人 × 60 docs | 30,000 |
+| **合計** | | **~105,000/日** |
+
+**最大のボトルネックは `/api/players/metadata` で、全体の約半分を占める。**
+
+## 対策1: metadataのAPIキャッシュ（効果: 読み取り~50,000削減）
+
+### 問題点
+
+`/api/players/metadata` は毎リクエストで `getPlayers()` を呼び、全選手ドキュメントを読み取っている。
+チーム一覧・ポジション一覧は頻繁に変わらないため、キャッシュが効果的。
+
+### 方針
+
+API Routeのレスポンスに `Cache-Control` ヘッダーを追加する。
+
+- `s-maxage=300`: CDN（Vercel Edge）で5分キャッシュ
+- `stale-while-revalidate=600`: キャッシュ期限切れ後も古いデータを返しつつバックグラウンドで更新
+
+### 変更箇所
+
+**ファイル**: `app/api/players/metadata/route.ts`
+
+```typescript
+// 変更前
+return NextResponse.json({ teams, positions, totalCount: players.length });
+
+// 変更後
+return NextResponse.json(
+  { teams, positions, totalCount: players.length },
+  {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+    },
+  }
+);
+```
+
+### 効果
+
+- 5分間は同じレスポンスがCDNから返される
+- Firestoreへの読み取りは5分に1回のみ（最大288回/日）
+- 1,000人/日の場合: 50,000 → **288 × 50 = 14,400** 読み取りに削減
+- **約35,000読み取り/日の削減**
+
+---
+
+## 対策2: 選手詳細ページのISR化（効果: 読み取り~20,000削減）
+
+### 問題点
+
+選手詳細ページ（`/players/[playerId]`）では:
+1. `generateMetadata()` で `getPlayer()` を呼ぶ（1読み取り）
+2. ページコンポーネントでも `getPlayer()` を呼ぶ（1読み取り）
+3. `getPlayerReviews(playerId, 20)` でレビューを取得（最大20読み取り）
+
+毎アクセスでFirestoreに直接問い合わせている。選手データは管理者がAI更新する時だけ変わるため、キャッシュが効果的。
+
+### 方針
+
+Server Componentに `revalidate` を設定してISR（Incremental Static Regeneration）を有効にする。
+
+### 変更箇所
+
+**ファイル**: `app/players/[playerId]/page.tsx`
+
+```typescript
+// ファイル先頭付近に追加
+export const revalidate = 600; // 10分ごとに再生成
+```
+
+### 効果
+
+- 10分間はキャッシュされたHTMLが返される
+- 選手データ・レビューの読み取りは10分に1回のみ
+- 1,000人/日の場合: 22,000 → **144回/日 × 22 = 3,168** 読み取りに削減
+- **約19,000読み取り/日の削減**
+
+### 注意点
+
+- レビュー投稿後、**他のユーザー**に最新レビューが反映されるまで最大10分かかる
+- `revalidate` の値は必要に応じて調整可能（リアルタイム性を重視するなら `300`（5分）に短縮）
+- **投稿者本人の表示問題は対策2-A（下記）で解決する。対策2と2-Aは必ずセットで実装すること。**
+
+---
+
+## 対策2-A: レビュー投稿後のクライアント側state更新（対策2の必須セット）
+
+### 問題点
+
+対策2でISRを導入すると、`window.location.reload()` はキャッシュされた古いページを返す。
+そのため投稿者本人の画面で以下が起きる：
+
+1. レビュー投稿 → 成功
+2. `window.location.reload()` が発火
+3. ISRキャッシュ（投稿前のデータ）が返される
+4. **自分のレビューが消えたように見える**
+5. **reviewCount / summary / rank も投稿前の値に戻る**
+
+### 方針
+
+`window.location.reload()` を廃止し、投稿成功後にクライアント側のstateを直接更新する。
+Firestoreからレビュー一覧と選手データを再取得してstateにセットすることで、
+ISRキャッシュに依存せず投稿者本人には即座に最新データを表示する。
+
+### 変更箇所
+
+#### 1. `PlayerDetailClient.tsx` — `refreshReviews` を修正
+
+```typescript
+// 変更前
+const refreshReviews = async () => {
+    try {
+        const newReviews = await getPlayerReviews(playerId);
+        setReviews(newReviews);
+        window.location.reload(); // ← ISR化後はキャッシュが返るので問題
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// 変更後
+const refreshAfterReview = async () => {
+    try {
+        // レビュー一覧を再取得（クライアントSDKで直接Firestoreから読む）
+        const newReviews = await getPlayerReviews(playerId);
+        setReviews(newReviews);
+
+        // 選手データも再取得（reviewCount, summary, rankが更新されている）
+        const updatedPlayer = await getPlayer(playerId);
+        if (updatedPlayer) {
+            setPlayer(updatedPlayer);
+        }
+    } catch (e) {
+        console.error('レビュー後のデータ更新に失敗:', e);
+    }
+}
+```
+
+#### 2. `PlayerDetailClient.tsx` — import に `getPlayer` を追加
+
+```typescript
+// 変更前
+import { getPlayerReviews } from '@/lib/firebase/firestore';
+
+// 変更後
+import { getPlayer, getPlayerReviews } from '@/lib/firebase/firestore';
+```
+
+#### 3. `PlayerDetailClient.tsx` — `onSuccess` コールバックを修正
+
+```typescript
+// 変更前
+<ReviewForm
+    playerId={playerId}
+    playerName={player.name}
+    onSuccess={() => {
+        setShowReviewForm(false);
+        window.location.reload();
+    }}
+/>
+
+// 変更後
+<ReviewForm
+    playerId={playerId}
+    playerName={player.name}
+    onSuccess={() => {
+        setShowReviewForm(false);
+        refreshAfterReview();
+    }}
+/>
+```
+
+### なぜ `window.location.reload()` ではなくstate更新なのか
+
+| 方式 | ISRなし | ISRあり |
+|------|---------|---------|
+| `window.location.reload()` | 最新データ取得 | **キャッシュが返り古いデータ** |
+| クライアント側state更新 | 最新データ取得 | 最新データ取得 |
+
+クライアントSDKの `getPlayer()` / `getPlayerReviews()` はFirestoreに直接アクセスするため、
+ISRのキャッシュとは無関係に常に最新データを取得できる。
+
+### Firestoreへの追加コスト
+
+- 投稿成功時のみ `getPlayer`（1読み取り）+ `getPlayerReviews`（最大20読み取り）が発生
+- レビュー投稿は1日に数十回程度の操作なので、追加コストは無視できるレベル
+- 例: 1日50件の投稿 → 追加読み取り 50 × 21 = 1,050回/日（無料枠50,000のうち約2%）
+
+---
+
+## 対策後の試算（1,000人/日）
+
+| 操作 | 対策前 | 対策後 | 削減 |
+|------|--------|--------|------|
+| トップ（ISR部分） | 3,500 | 3,500 | - |
+| トップ（metadata） | 50,000 | **14,400** | -35,600 |
+| 選手詳細 | 22,000 | **3,168** | -18,832 |
+| 試合詳細 | 30,000 | 30,000 | - |
+| **合計** | **105,000** | **~51,000** | **-54,000** |
+
+対策1+2で約半減し、**無料枠50,000にほぼ収まる**レベルになる。
+
+### 将来的な対策（ユーザーがさらに増えた場合）
+
+- **対策3**: 試合詳細ページのレビュー一括取得（`gameId`のみで1クエリ化）
+- **対策4**: 試合詳細ページ自体のISR化
+- **対策5**: Blazeプラン（従量課金）への移行（$0.06/100,000読み取り）
+
+## テスト方法
+
+1. metadataのキャッシュ確認
+   - `/api/players/metadata` にアクセス → レスポンスヘッダーに `Cache-Control` が含まれることを確認
+   - 5分以内に再アクセス → Vercelでは `x-vercel-cache: HIT` が返ることを確認
+
+2. 選手詳細ページのISR確認
+   - `/players/[playerId]` にアクセス → ページが表示されることを確認
+   - 選手データを更新 → 10分後にページをリロードして反映されることを確認
+
+3. レビュー投稿後の即時反映確認（対策2-A）
+   - 選手詳細ページでレビューを投稿する
+   - 投稿後、ページリロードなしでレビュー一覧に自分のレビューが表示されることを確認
+   - ヘッダー部分の reviewCount が +1 されていることを確認
+   - summary（レーダーチャート）/ rank が更新されていることを確認
+   - `window.location.reload()` が呼ばれていないこと（DevToolsのNetworkタブでナビゲーションリクエストが発生しないこと）を確認

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createReviewAdmin } from '@/lib/firebase/admin-firestore';
 import { calculateAverageScore } from '@/lib/utils';
-import { checkRateLimit } from '@/lib/utils/rate-limit';
+import { checkRateLimit, checkPlayerReviewLimit, checkDuplicateComment } from '@/lib/utils/rate-limit';
 
 // タイムアウト付きPromiseラッパー
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -121,11 +121,28 @@ export async function POST(request: NextRequest) {
     if (!rateLimit.allowed) {
       const resetTime = new Date(rateLimit.resetTime).toLocaleString('ja-JP');
       return NextResponse.json(
-        { 
+        {
           message: `投稿制限に達しました。リセット時間: ${resetTime}`,
           resetTime: rateLimit.resetTime,
         },
         { status: 429 }
+      );
+    }
+
+    // 同一選手レビュー制限（同じ選手に2回まで）
+    const playerLimit = checkPlayerReviewLimit(ip, playerId);
+    if (!playerLimit.allowed) {
+      return NextResponse.json(
+        { message: 'この選手へのレビューは2回までです' },
+        { status: 429 }
+      );
+    }
+
+    // 重複コメント検出
+    if (checkDuplicateComment(ip, comment)) {
+      return NextResponse.json(
+        { message: '同じ内容のコメントが既に投稿されています' },
+        { status: 400 }
       );
     }
 
